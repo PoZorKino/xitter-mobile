@@ -14,7 +14,7 @@ window.XITTER_CONFIG = {
 	// sign-in there is one tap without an entry in oauthClients.
 	clientMetadata: "https://mobile.xitter.space/oauth-client.json",
 	oauthClients: {
-		"xitter.space": "2112493053494165504",
+		"xitter.space": "2112657172314718208",
 	},
 	// An instance to offer first: the welcome screen then shows one big
 	// "Continue with <instance>" button. It needs an entry in oauthClients.
