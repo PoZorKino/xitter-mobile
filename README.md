@@ -61,6 +61,8 @@ subscriptions for API tokens would let this app use it directly.
 
 ## Running it
 
+Live at **https://jyeridley.github.io/xitter-mobile/**, deployed from `main` by `.github/workflows/pages.yml`. For OAuth sign-in, register that exact URL as the redirect on each instance.
+
 Serve the folder over HTTPS from any static host (GitHub Pages, Cloudflare Pages, Netlify,
 nginx...). Locally:
 
