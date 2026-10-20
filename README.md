@@ -31,6 +31,11 @@ instance's public API (`/api/v1`).
 
 ## Signing in
 
+On instances listed in `config.js`, sign-in is one tap: the app opens the instance's
+Authorize page, and if you're already signed in there you tap Authorize and you're back in.
+The official app (https://mobile.xitter.space/) has this for **xitter.space**, which the
+welcome screen offers first.
+
 On each instance you can sign in either way:
 
 1. **API token** (works everywhere, no setup): open `https://<instance>/account/api`, make a

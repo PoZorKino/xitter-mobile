@@ -13,13 +13,16 @@ const PENDING = "xit.oauth";
 
 // the federation list, bundled so the picker works offline; refreshed from GitHub
 const BUILTIN = [
-	["larp.jye.fyi", "larp"],
+	["giggleshitter.gay", "giggleshitter"],
+	["jr1.xitter.space", "jr1"],
 	["nidus.fourteentrees.net", "Nidus"],
 	["social.opsex.best", "Xitter"],
 	["x.glitchprod.xyz", "Digital Circus"],
 	["x.transfur.org", "Xitter"],
-	["xit.chococat.lol", "Xit"],
+	["x12.area12.lol", "X12"],
+	["xitt.flex.pm", "Xittor"],
 	["xitter.opuadm.com", "Xitter"],
+	["xitter.space", "Xit"],
 	["xt.iambrdn.com", "xt.brdn"],
 ].map(([id, name]) => ({ id, name }));
 
@@ -41,11 +44,12 @@ async function instances() {
 
 export const redirectUri = () => new URL("./", location.href).href;
 
+const configured = (instance) => (!CFG.oauthRedirect || CFG.oauthRedirect === redirectUri() ? CFG.oauthClients?.[instance] || "" : "");
 function clientFor(instance) {
 	try {
-		return JSON.parse(localStorage.getItem(CLIENTS) || "{}")[instance] || CFG.oauthClients?.[instance] || "";
+		return JSON.parse(localStorage.getItem(CLIENTS) || "{}")[instance] || configured(instance);
 	} catch {
-		return CFG.oauthClients?.[instance] || "";
+		return configured(instance);
 	}
 }
 function rememberClient(instance, id) {
@@ -105,7 +109,7 @@ export function reauthorize(account) {
 
 // ---- the add-account sheet
 
-export function addAccountFlow({ onDone, instance: preset, welcome = false } = {}) {
+export function addAccountFlow({ onDone, instance: preset, direct, welcome = false } = {}) {
 	const root = el(`<div class="auth">
 		<div class="auth-bar"><button class="bar-btn press" data-x aria-label="Close">${icon("close")}</button><div class="auth-logo">${icon("logo")}</div><span></span></div>
 		<div class="auth-body sheet-scroll"></div></div>`);
@@ -113,26 +117,45 @@ export function addAccountFlow({ onDone, instance: preset, welcome = false } = {
 	$("[data-x]", root).onclick = () => s.close();
 	const body = $(".auth-body", root);
 
+	// with a registered client, tapping an instance goes straight to its
+	// Authorize page: one tap there (if you're signed in) and you're back in
+	let tokenMode = false;
+	const choose = (instance) => {
+		const cid = clientFor(instance);
+		if (cid && !tokenMode) {
+			body.innerHTML = `<div class="auth-going"><div class="spinner"></div><p>Opening ${esc(instance)}…</p></div>`;
+			return startOAuth(instance, cid);
+		}
+		method(instance);
+	};
+
 	function pick() {
 		body.innerHTML = `<h1>${welcome ? "Sign in to Xitter" : "Add an account"}</h1>
-			<p class="auth-sub">Pick the instance your account lives on. You can add accounts from as many instances as you like and switch between them.</p>
-			<form class="field-wrap" data-custom><input class="field" name="i" placeholder="Instance address, e.g. larp.jye.fyi" autocapitalize="off" autocomplete="url" inputmode="url" enterkeyhint="go"><button class="pill-btn solid" type="submit">Next</button></form>
+			<p class="auth-sub">${tokenMode ? "Pick the instance to make a token on." : "Pick the instance your account lives on. If you're already signed in there, it's one tap."}</p>
+			<form class="field-wrap" data-custom><input class="field" name="i" placeholder="Instance address, e.g. xitter.space" autocapitalize="off" autocomplete="url" inputmode="url" enterkeyhint="go"><button class="pill-btn solid" type="submit">Next</button></form>
 			<div class="group-label">Federated instances</div>
-			<div class="group inst-list"><div class="loading-row">Loading…</div></div>`;
+			<div class="group inst-list"><div class="loading-row">Loading…</div></div>
+			<button class="text-btn token-toggle" data-token-mode>${tokenMode ? "Sign in with your browser instead" : "Sign in with an API token instead"}</button>`;
 		$("[data-custom]", body).onsubmit = (e) => {
 			e.preventDefault();
 			const i = normaliseInstance(e.target.i.value);
 			if (!i) return toast("Enter an instance address", { error: true });
-			method(i);
+			choose(i);
 		};
 		instances().then((list) => {
+			const first = CFG.primaryInstance;
+			list = [...list].sort((x, y) => (y.id === first) - (x.id === first));
 			$(".inst-list", body).innerHTML = list
-				.map((i) => `<button class="row press" data-i="${esc(i.id)}"><img class="inst-ico" src="${esc(originOf(i.id))}/favicon.ico" alt="" onerror="this.style.visibility='hidden'"><div class="row-main"><b>${esc(i.name)}</b><span>${esc(i.id)}</span></div>${icon("back", "flip dim")}</button>`)
+				.map((i) => `<button class="row press" data-i="${esc(i.id)}"><img class="inst-ico" src="${esc(originOf(i.id))}/favicon.ico" alt="" onerror="this.style.visibility='hidden'"><div class="row-main"><b>${esc(i.name)}</b><span>${esc(i.id)}</span></div>${clientFor(i.id) && !tokenMode ? `<span class="one-tap">One tap</span>` : ""}${icon("back", "flip dim")}</button>`)
 				.join("");
 		});
 		body.onclick = (e) => {
+			if (e.target.closest("[data-token-mode]")) {
+				tokenMode = !tokenMode;
+				return pick();
+			}
 			const b = e.target.closest("[data-i]");
-			if (b) method(b.dataset.i);
+			if (b) choose(b.dataset.i);
 		};
 	}
 
@@ -194,20 +217,23 @@ export function addAccountFlow({ onDone, instance: preset, welcome = false } = {
 	}
 
 	if (preset) method(preset);
+	else if (direct) choose(direct);
 	else pick();
 	return s;
 }
 
 // first launch, no accounts yet
 export function welcomeScreen(onDone) {
+	const primary = CFG.primaryInstance && clientFor(CFG.primaryInstance) ? CFG.primaryInstance : null;
 	const w = el(`<div class="welcome">
 		<div class="welcome-logo">${icon("logo")}</div>
 		<h1>See what's happening across the Xitterverse.</h1>
 		<div class="welcome-actions">
-			<button class="pill-btn solid wide big" data-signin>Sign in</button>
+			${primary ? `<button class="pill-btn solid wide big" data-primary>Continue with ${esc(primary)}</button><button class="pill-btn outline wide big" data-signin>Other instances</button>` : `<button class="pill-btn solid wide big" data-signin>Sign in</button>`}
 			<p class="fine">Works with any Xitter instance. Add accounts from several instances and switch between them with a tap.</p>
 		</div>
 	</div>`);
 	$("[data-signin]", w).onclick = () => addAccountFlow({ welcome: true, onDone });
+	$("[data-primary]", w)?.addEventListener("click", () => addAccountFlow({ welcome: true, onDone, direct: primary }));
 	return w;
 }

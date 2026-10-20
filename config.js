@@ -6,9 +6,15 @@
 // With an entry here, people on that instance just tap "Continue in browser".
 // Without one, they can paste their own client ID or a personal API token.
 window.XITTER_CONFIG = {
+	// The address these client IDs were registered with as their redirect URL.
+	// Served from anywhere else, the app ignores them (they'd be refused).
+	oauthRedirect: "https://mobile.xitter.space/",
 	oauthClients: {
-		// "larp.jye.fyi": "1234567890123456789",
+		"xitter.space": "2112493053494165504",
 	},
+	// An instance to offer first: the welcome screen then shows one big
+	// "Continue with <instance>" button. It needs an entry in oauthClients.
+	primaryInstance: "xitter.space",
 	// Where the federation list is read from; falls back to the built-in copy.
 	instancesUrl: "https://raw.githubusercontent.com/Xittered/xitter/main/instances.json",
 };
