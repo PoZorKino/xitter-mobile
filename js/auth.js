@@ -168,8 +168,10 @@ export function addAccountFlow({ onDone, instance: preset, direct, welcome = fal
 			choose(i);
 		};
 		instances().then((list) => {
+			// the main instance is pinned to the top, even if the list left it out
 			const first = CFG.primaryInstance;
-			list = [...list].sort((x, y) => (y.id === first) - (x.id === first));
+			const pinned = first && (list.find((i) => i.id === first) || BUILTIN.find((i) => i.id === first) || { id: first, name: first });
+			list = pinned ? [pinned, ...list.filter((i) => i.id !== first)] : list;
 			$(".inst-list", body).innerHTML = list
 				.map((i) => `<button class="row press" data-i="${esc(i.id)}"><img class="inst-ico" src="${esc(originOf(i.id))}/favicon.ico" alt="" onerror="this.style.visibility='hidden'"><div class="row-main"><b>${esc(i.name)}</b><span>${esc(i.id)}</span></div>${clientFor(i.id) && !tokenMode ? `<span class="one-tap">One tap</span>` : ""}${icon("back", "flip dim")}</button>`)
 				.join("");

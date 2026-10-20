@@ -37,7 +37,7 @@ The official app (https://mobile.xitter.space/) has this for **xitter.space**, w
 welcome screen offers first.
 
 Instances that support OAuth client ID metadata documents (proposed for Xitter in
-[jyeridley/xitter2#oauth-client-metadata](https://github.com/jyeridley/xitter2/tree/oauth-client-metadata))
+[jyeridley/xitter2 one-tap-oauth](https://github.com/jyeridley/xitter2/tree/one-tap-oauth))
 need no registration at all: the app identifies itself with
 [`oauth-client.json`](oauth-client.json) and sign-in is one tap there too.
 
