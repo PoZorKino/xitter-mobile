@@ -147,7 +147,7 @@ body.card-open #app {
 .bar-avatar { position: relative; width: 36px; height: 36px; flex: none; }
 .bar-avatar .av { width: 32px; height: 32px; margin: 2px; }
 .bar-logo { flex: 1; display: grid; place-items: center; }
-.bar-logo .ic { width: 27px; height: 27px; }
+.bar-logo .ic { width: 32px; height: 32px; }
 .badge-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
 #app.bar-hidden .acct-root.active .home .bar { transform: translate3d(0, calc(-100% + var(--safe-top)), 0); }
 #app.bar-hidden .tabbar { opacity: 0.35; }
@@ -684,7 +684,7 @@ body.card-open #app {
 .auth { display: flex; flex-direction: column; height: 100%; }
 .auth-bar { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; padding: 8px 12px; }
 .auth-logo { display: grid; place-items: center; }
-.auth-logo .ic { width: 28px; height: 28px; }
+.auth-logo .ic { width: 32px; height: 32px; }
 .auth-body { flex: 1; padding: 8px 24px calc(var(--safe-bottom) + 32px); }
 .auth h1 { font-size: 28px; line-height: 34px; font-weight: 800; margin: 12px 0 8px; }
 .auth-sub { color: var(--dim); margin: 0 0 20px; line-height: 20px; }
@@ -711,7 +711,7 @@ body.card-open #app {
 
 .welcome { position: absolute; inset: 0; display: flex; flex-direction: column; padding: calc(var(--safe-top) + 24px) 32px calc(var(--safe-bottom) + 32px); background: var(--bg); }
 .welcome-logo { display: grid; place-items: center; }
-.welcome-logo .ic { width: 34px; height: 34px; }
+.welcome-logo .ic { width: 48px; height: 48px; }
 .welcome h1 { margin: auto 0; font-size: 31px; line-height: 38px; font-weight: 800; animation: arrive 0.8s var(--ease); }
 .welcome-actions { display: flex; flex-direction: column; gap: 14px; }
 
