@@ -9,6 +9,10 @@ window.XITTER_CONFIG = {
 	// The address these client IDs were registered with as their redirect URL.
 	// Served from anywhere else, the app ignores them (they'd be refused).
 	oauthRedirect: "https://mobile.xitter.space/",
+	// This app's client ID metadata document. Instances that support them
+	// (/.well-known/oauth-authorization-server says so) need no registration:
+	// sign-in there is one tap without an entry in oauthClients.
+	clientMetadata: "https://mobile.xitter.space/oauth-client.json",
 	oauthClients: {
 		"xitter.space": "2112493053494165504",
 	},

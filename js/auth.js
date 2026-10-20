@@ -52,6 +52,32 @@ function clientFor(instance) {
 		return configured(instance);
 	}
 }
+// does the instance take a URL as client_id? (asked once a day per instance)
+const SUPPORT = "xit.cimd";
+async function supportsMetadata(instance) {
+	if (!CFG.clientMetadata || (CFG.oauthRedirect && CFG.oauthRedirect !== redirectUri())) return false;
+	let known = {};
+	try {
+		known = JSON.parse(localStorage.getItem(SUPPORT) || "{}");
+	} catch {}
+	const hit = known[instance];
+	if (hit && Date.now() - hit.at < 864e5) return hit.ok;
+	let ok = false;
+	try {
+		const res = await fetch(`${originOf(instance)}/.well-known/oauth-authorization-server`, { signal: AbortSignal.timeout(4000) });
+		ok = res.ok && (await res.json()).client_id_metadata_document_supported === true;
+	} catch {}
+	known[instance] = { ok, at: Date.now() };
+	try {
+		localStorage.setItem(SUPPORT, JSON.stringify(known));
+	} catch {}
+	return ok;
+}
+// the client_id to use on an instance, if sign-in there can be one tap
+async function oneTapClient(instance) {
+	return clientFor(instance) || ((await supportsMetadata(instance)) ? CFG.clientMetadata : "");
+}
+
 function rememberClient(instance, id) {
 	try {
 		const all = JSON.parse(localStorage.getItem(CLIENTS) || "{}");
@@ -101,8 +127,8 @@ export async function finishOAuth() {
 }
 
 // re-run OAuth for an account whose token expired
-export function reauthorize(account) {
-	const id = account.clientId || clientFor(account.instance);
+export async function reauthorize(account) {
+	const id = account.clientId || (await oneTapClient(account.instance));
 	if (id) return startOAuth(account.instance, id);
 	return addAccountFlow({ instance: account.instance });
 }
@@ -120,12 +146,11 @@ export function addAccountFlow({ onDone, instance: preset, direct, welcome = fal
 	// with a registered client, tapping an instance goes straight to its
 	// Authorize page: one tap there (if you're signed in) and you're back in
 	let tokenMode = false;
-	const choose = (instance) => {
-		const cid = clientFor(instance);
-		if (cid && !tokenMode) {
-			body.innerHTML = `<div class="auth-going"><div class="spinner"></div><p>Opening ${esc(instance)}…</p></div>`;
-			return startOAuth(instance, cid);
-		}
+	const choose = async (instance) => {
+		if (tokenMode) return method(instance);
+		body.innerHTML = `<div class="auth-going"><div class="spinner"></div><p>Opening ${esc(instance)}…</p></div>`;
+		const cid = await oneTapClient(instance);
+		if (cid) return startOAuth(instance, cid);
 		method(instance);
 	};
 
@@ -148,6 +173,14 @@ export function addAccountFlow({ onDone, instance: preset, direct, welcome = fal
 			$(".inst-list", body).innerHTML = list
 				.map((i) => `<button class="row press" data-i="${esc(i.id)}"><img class="inst-ico" src="${esc(originOf(i.id))}/favicon.ico" alt="" onerror="this.style.visibility='hidden'"><div class="row-main"><b>${esc(i.name)}</b><span>${esc(i.id)}</span></div>${clientFor(i.id) && !tokenMode ? `<span class="one-tap">One tap</span>` : ""}${icon("back", "flip dim")}</button>`)
 				.join("");
+			// mark the instances that take this app without registration
+			if (!tokenMode)
+				for (const i of list)
+					if (!clientFor(i.id))
+						supportsMetadata(i.id).then((ok) => {
+							const row = ok && body.querySelector(`[data-i="${CSS.escape(i.id)}"]`);
+							if (row && !row.querySelector(".one-tap")) row.querySelector(".row-main").insertAdjacentHTML("afterend", `<span class="one-tap">One tap</span>`);
+						});
 		});
 		body.onclick = (e) => {
 			if (e.target.closest("[data-token-mode]")) {

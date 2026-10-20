@@ -1,0 +1,11 @@
+{
+	"client_id": "https://mobile.xitter.space/oauth-client.json",
+	"client_name": "Xitter Mobile",
+	"client_uri": "https://mobile.xitter.space/",
+	"logo_uri": "https://mobile.xitter.space/icons/icon-192.png",
+	"redirect_uris": ["https://mobile.xitter.space/"],
+	"grant_types": ["authorization_code"],
+	"response_types": ["code"],
+	"token_endpoint_auth_method": "none",
+	"application_type": "web"
+}

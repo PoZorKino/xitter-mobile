@@ -36,6 +36,11 @@ Authorize page, and if you're already signed in there you tap Authorize and you'
 The official app (https://mobile.xitter.space/) has this for **xitter.space**, which the
 welcome screen offers first.
 
+Instances that support OAuth client ID metadata documents (proposed for Xitter in
+[jyeridley/xitter2#oauth-client-metadata](https://github.com/jyeridley/xitter2/tree/oauth-client-metadata))
+need no registration at all: the app identifies itself with
+[`oauth-client.json`](oauth-client.json) and sign-in is one tap there too.
+
 On each instance you can sign in either way:
 
 1. **API token** (works everywhere, no setup): open `https://<instance>/account/api`, make a
