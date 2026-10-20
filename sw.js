@@ -1,14 +1,13 @@
 // Service worker: the app shell offline, a bounded cache for avatars and
 // media, and notification checks in the background where the browser allows
 // (Periodic Background Sync, on installed Chromium apps).
-const VERSION = "v1.1.1";
+const VERSION = "v1.2.0";
 const SHELL = `shell-${VERSION}`;
 const MEDIA = "media-v1";
 const MEDIA_MAX = 400;
 
 const FILES = [
 	"./",
-	"index.html",
 	"config.js",
 	"manifest.webmanifest",
 	"css/app.css",
@@ -30,8 +29,25 @@ const FILES = [
 
 importScripts("js/notify-core.js");
 
+// Hosts that tidy URLs (Cloudflare Pages, GitHub Pages) answer some paths with a
+// redirect. Safari refuses to show a page from a service worker response that
+// was redirected, so every cached copy is stored as a fresh, unredirected one.
+async function clean(res) {
+	if (!res.redirected) return res;
+	return new Response(await res.blob(), { status: res.status, statusText: res.statusText, headers: res.headers });
+}
+async function store(c, key, res) {
+	if (res.ok) await c.put(key, await clean(res));
+}
+
 self.addEventListener("install", (e) => {
-	e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));
+	e.waitUntil(
+		(async () => {
+			const c = await caches.open(SHELL);
+			await Promise.all(FILES.map(async (f) => store(c, f, await fetch(new Request(f, { cache: "reload" })))));
+			await self.skipWaiting();
+		})(),
+	);
 });
 
 self.addEventListener("activate", (e) => {
@@ -54,18 +70,16 @@ self.addEventListener("fetch", (e) => {
 
 	if (url.origin === location.origin) {
 		// app shell: cached first, refreshed behind the scenes
+		// every page of the app is the same shell, cached under "./"
 		if (req.mode === "navigate") {
-			const net = fetch("index.html", { cache: "no-cache" }).then((res) => {
-				if (res.ok) caches.open(SHELL).then((c) => c.put("index.html", res.clone()));
-				return res;
-			});
-			e.waitUntil(net.catch(() => {}));
-			e.respondWith(caches.match("index.html").then((hit) => hit || net));
+			const net = fetch("./", { cache: "no-cache" }).then(clean);
+			e.waitUntil(net.then(async (res) => store(await caches.open(SHELL), "./", res.clone())).catch(() => {}));
+			e.respondWith(caches.match("./").then((hit) => hit || net));
 			return;
 		}
 		e.respondWith(
 			caches.match(req, { ignoreSearch: true }).then((hit) => {
-				const net = fetch(req).then((res) => {
+				const net = fetch(req).then(clean).then((res) => {
 					if (res.ok) caches.open(SHELL).then((c) => c.put(req, res.clone()));
 					return res;
 				}).catch(() => hit);

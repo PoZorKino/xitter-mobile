@@ -37,7 +37,7 @@ On each instance you can sign in either way:
    *Read and write* token and paste it in. It lasts until you revoke it.
 2. **OAuth with PKCE** ("Continue in browser"): needs an OAuth client registered on that
    instance at `https://<instance>/account/apps/developer`, with the redirect URL set to the
-   exact address you serve this app from (e.g. `https://xitter.example.app/`). Put the client
+   exact address the app is served from (`https://mobile.xitter.space/` for the official one). Put the client
    IDs in `config.js` so people just tap the button, or anyone can paste a client ID in the
    app. Xitter's OAuth tokens expire after 30 days; the app asks you to sign in again then.
    Current Xitter rejects every OAuth approval with "Invalid authorization form." (its consent page
@@ -64,7 +64,7 @@ subscriptions for API tokens would let this app use it directly.
 
 ## Running it
 
-Live at **https://jyeridley.github.io/xitter-mobile/**, served by GitHub Pages straight from `main` (Settings → Pages → Deploy from a branch → `main` / root). For OAuth sign-in, register that exact URL as the redirect on each instance.
+Live at **https://mobile.xitter.space/**, built from `main`. For OAuth sign-in, register `https://mobile.xitter.space/` as the redirect URL on each instance.
 
 Serve the folder over HTTPS from any static host (GitHub Pages, Cloudflare Pages, Netlify,
 nginx...). Locally:
