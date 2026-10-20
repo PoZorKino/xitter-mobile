@@ -146,6 +146,7 @@ export function addAccountFlow({ onDone, instance: preset, welcome = false } = {
 			<div class="auth-card">
 				<b>Continue in browser</b>
 				<p>Approve this app on ${esc(instance)} with OAuth. Access lasts 30 days.</p>
+				<p class="fine">If ${esc(instance)} answers “Invalid authorization form.”, it's running a Xitter version with a sign-in bug. Use an API token below instead.</p>
 				${cid ? `<button class="pill-btn solid wide" data-oauth>Continue in browser</button>` : `<details><summary>Set up browser sign-in (once per instance)</summary>
 					<ol class="steps"><li>Open <a href="${esc(origin)}/account/apps/developer" target="_blank" rel="noopener">Developer apps</a> on ${esc(instance)}.</li>
 					<li>Register an app with this exact redirect URL: <code class="copy" data-copy="${esc(redirectUri())}">${esc(redirectUri())}</code></li>

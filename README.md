@@ -40,6 +40,9 @@ On each instance you can sign in either way:
    exact address you serve this app from (e.g. `https://xitter.example.app/`). Put the client
    IDs in `config.js` so people just tap the button, or anyone can paste a client ID in the
    app. Xitter's OAuth tokens expire after 30 days; the app asks you to sign in again then.
+   Current Xitter rejects every OAuth approval with "Invalid authorization form." (its consent page
+   is served with `Referrer-Policy: no-referrer`, so the form posts `Origin: null`); the fix is a
+   one-line change in `src/oauth.ts`. Until an instance has it, sign in there with a token.
 
 ## Notifications: what to know
 
