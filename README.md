@@ -17,7 +17,7 @@ instance's public API (`/api/v1`).
   close, a stretchy profile banner, a top bar that hides as you scroll, pull to refresh, a
   "new posts" pill, a heart burst when you like something, haptics where the device has them.
   Light, Dim and Lights out themes.
-- **Fast:** about 120 KB of plain ES modules with modulepreload, the app shell cached by a
+- **Fast:** about 190 KB of plain ES modules and CSS (about 50 KB gzipped) with modulepreload, the app shell cached by a
   service worker, the home timeline restored from a snapshot before the network answers,
   `content-visibility` on posts, one shared request per URL, and optimistic likes, reposts,
   bookmarks and follows.
