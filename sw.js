@@ -1,7 +1,7 @@
 // Service worker: the app shell offline, a bounded cache for avatars and
 // media, and notification checks in the background where the browser allows
 // (Periodic Background Sync, on installed Chromium apps).
-const VERSION = "v1.3.0";
+const VERSION = "v1.3.1";
 const SHELL = `shell-${VERSION}`;
 const MEDIA = "media-v1";
 const MEDIA_MAX = 400;
@@ -74,7 +74,8 @@ self.addEventListener("fetch", (e) => {
 		if (req.mode === "navigate") {
 			const net = fetch("./", { cache: "no-cache" }).then(clean);
 			e.waitUntil(net.then(async (res) => store(await caches.open(SHELL), "./", res.clone())).catch(() => {}));
-			e.respondWith(caches.match("./").then((hit) => hit || net));
+			// never leave the browser with an error page: cache, then network, then the real request
+			e.respondWith(caches.match("./").then((hit) => (hit ? clean(hit) : net)).catch(() => fetch(req)));
 			return;
 		}
 		e.respondWith(
