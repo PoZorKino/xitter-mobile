@@ -77,67 +77,169 @@ function setFollowBtn(btn, following, label) {
 	btn.textContent = label || (following ? "Following" : "Follow");
 }
 
-// ---- Home
+// ---- Home: Following, Latest and Popular, side by side; swipe between them
+
+const HOME_TABS = [
+	{ key: "following", label: "Following" },
+	{ key: "latest", label: "Latest" },
+	{ key: "popular", label: "Popular" },
+];
+const weekAgo = () => new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
 
 export class HomePage extends Page {
 	constructor(ctx) {
 		super(ctx);
 		const a = ctx.account;
+		this.state = cacheGet(a.key, "home-state") || {};
+		this.tab = HOME_TABS.some((t) => t.key === this.state.tab) ? this.state.tab : "following";
 		this.el = el(`<section class="page home">
 			<header class="bar home-bar"><div class="bar-row">
 				<button class="bar-avatar press" data-drawer aria-label="Accounts">${avatar(a.user)}<span class="badge-dot" hidden></span></button>
 				<div class="bar-logo">${icon("logo")}</div>
-				<div class="bar-right"><button class="bar-btn press" data-settings aria-label="Settings">${icon("gear")}</button></div>
+				<div class="bar-right"></div>
 			</div>
-			<div class="home-tabs"><button class="on">Following</button><button data-explore>${esc(a.instance)}</button><i class="tab-ink"></i></div></header>
-			<div class="scroll"><div class="list"></div></div>
+			<nav class="home-tabs" role="tablist">${HOME_TABS.map((t) => `<button role="tab" data-tab="${t.key}">${t.label}</button>`).join("")}<i class="tab-ink"></i></nav></header>
+			<div class="pager">${HOME_TABS.map((t) => `<div class="pane" data-pane="${t.key}"><div class="scroll"><div class="list"></div></div></div>`).join("")}</div>
 			<button class="new-pill" hidden><span class="new-avs"></span>${icon("back")}<span>Posted</span></button>
 		</section>`);
-		const scroller = this.scroller;
-		this.list = $(".list", this.el);
+		this.pager = $(".pager", this.el);
+		this.ink = $(".tab-ink", this.el);
+		this.feeds = {};
 		bindPostActions(this.el, ctx);
-		autoHideBar(this, scroller, ctx.chrome);
 		this.el.querySelector("[data-drawer]").onclick = () => ctx.drawer();
-		this.el.querySelector("[data-settings]").onclick = () => ctx.open("settings");
-		this.el.querySelector("[data-explore]").onclick = () => ctx.open("explore");
 		this.pill = $(".new-pill", this.el);
 		this.pill.onclick = () => this.showPending();
-		this.feed = new Feed({
-			ctx,
-			scroller,
-			list: this.list,
-			load: (cursor) => ctx.api.timeline({ cursor }),
-			cached: cacheGet(a.key, "home"),
-			empty: `<b>Welcome to ${esc(a.instance)}</b><p>Follow people and their posts will show up here. Find some in Search.</p>`,
-			onRefresh: (out) => this.snapshot(out),
-		});
 		this.pending = [];
-		// first paint: from the snapshot if there is one, then fresh
-		if (this.feed.stale) this.feed.refresh();
-		else this.feed.more().then(() => this.snapshot({ data: this.feed.items.slice(0, 30), next_cursor: this.feed.cursor }));
+		for (const pane of $$(".pane", this.el)) autoHideBar(this, $(".scroll", pane), ctx.chrome);
+
+		this.el.querySelector(".home-tabs").addEventListener("click", (e) => {
+			const b = e.target.closest("[data-tab]");
+			if (!b) return;
+			if (b.dataset.tab === this.tab) return this.scrollTop();
+			this.select(b.dataset.tab, { animate: true });
+		});
+		this.el.addEventListener("click", (e) => {
+			const go = e.target.closest("[data-go-tab]");
+			if (go) this.select(go.dataset.goTab, { animate: true });
+			if (e.target.closest("[data-go-search]")) ctx.app.current.selectTab("search"), ctx.app.updateChrome();
+		});
+		// the ink follows your finger; settling on a pane selects its tab
+		let settle;
+		this.pager.addEventListener("scroll", rafThrottle(() => {
+			const w = this.pager.clientWidth;
+			if (!w) return;
+			const x = this.pager.scrollLeft / w;
+			this.moveInk(x);
+			clearTimeout(settle);
+			settle = setTimeout(() => {
+				const t = HOME_TABS[Math.round(this.pager.scrollLeft / this.pager.clientWidth)]?.key;
+				if (t && t !== this.tab) this.select(t);
+			}, 90);
+		}), { passive: true });
+		addEventListener("resize", () => this.select(this.tab));
+
+		this.select(this.tab);
+		// tabs can only be measured (and the pager scrolled) once on screen
+		requestAnimationFrame(() => this.select(this.tab));
+		// load the other tabs in the background, so a swipe never lands on a spinner
+		this.preload = setTimeout(() => HOME_TABS.forEach((t) => this.feeds[t.key] || this.makeFeed(t.key)), 1500);
 		this.poll = setInterval(() => this.checkNew(), 45_000);
+		// leaving the app is when your place matters most
+		this.onHidden = (e) => (e.type === "pagehide" || document.hidden) && this.saveState();
+		document.addEventListener("visibilitychange", this.onHidden);
+		addEventListener("pagehide", this.onHidden);
+	}
+
+	get scroller() {
+		return $(`[data-pane="${this.tab}"] .scroll`, this.el);
+	}
+
+	moveInk(x) {
+		const tabs = $$(".home-tabs button", this.el);
+		const i = Math.max(0, Math.min(tabs.length - 1, x));
+		const lo = tabs[Math.floor(i)], hi = tabs[Math.ceil(i)], f = i - Math.floor(i);
+		const left = lo.offsetLeft + (hi.offsetLeft - lo.offsetLeft) * f, width = lo.offsetWidth + (hi.offsetWidth - lo.offsetWidth) * f;
+		this.ink.style.transform = `translateX(${left + width / 2 - 28}px)`;
+		tabs.forEach((t, j) => t.classList.toggle("on", j === Math.round(i)));
+	}
+
+	select(tab, { animate = false } = {}) {
+		const i = HOME_TABS.findIndex((t) => t.key === tab);
+		const changed = tab !== this.tab;
+		this.tab = tab;
+		const left = i * this.pager.clientWidth;
+		if (Math.abs(this.pager.scrollLeft - left) > 1) this.pager.scrollTo({ left, behavior: animate ? "smooth" : "instant" });
+		this.moveInk(i);
+		if (!this.feeds[tab]) this.makeFeed(tab);
+		this.ctx.chrome.classList.remove("bar-hidden");
+		if (changed) {
+			this.saveState();
+			if (tab !== "following") this.pill.hidden = true;
+			else if (this.pending.length) this.pill.hidden = false;
+		}
+	}
+
+	makeFeed(tab) {
+		const { ctx } = this, a = ctx.account;
+		const pane = $(`[data-pane="${tab}"]`, this.el);
+		const scroller = $(".scroll", pane);
+		const load = {
+			following: (cursor) => ctx.api.timeline({ cursor }),
+			latest: (cursor) => ctx.api.searchPosts(`since:${weekAgo()}`, { cursor }),
+			popular: (cursor) => ctx.api.searchPosts(`since:${weekAgo()}`, { sort: "top", cursor }),
+		}[tab];
+		const empty = {
+			following: `<b>Welcome to ${esc(a.instance)}</b><p>Posts from people you follow show up here.</p><div class="empty-actions"><button class="pill-btn solid" data-go-tab="latest">See what's new</button><button class="pill-btn outline" data-go-search>Find people</button></div>`,
+			latest: `<b>Quiet this week</b><p>Nothing's been posted on ${esc(a.instance)} or the instances it federates with lately.</p>`,
+			popular: `<b>Nothing popular yet</b><p>The most liked posts of the week show up here.</p>`,
+		}[tab];
+		const feed = new Feed({ ctx, scroller, list: $(".list", pane), load, empty, cached: cacheGet(a.key, `home-${tab}`), onRefresh: () => this.snapshot(tab) });
+		this.feeds[tab] = feed;
+		// back where you were reading, then fresh posts slide in above
+		if (feed.stale) {
+			if (this.state.anchors?.[tab]) requestAnimationFrame(() => feed.restore(this.state.anchors[tab]));
+			feed.refresh();
+		} else feed.more().then(() => this.snapshot(tab));
 		scroller.addEventListener("scroll", rafThrottle(() => {
-			if (scroller.scrollTop < 30 && this.pending.length) this.showPending(false);
+			if (tab === "following" && scroller.scrollTop < 30 && this.pending.length) this.showPending(false);
+			clearTimeout(this.saveTimer);
+			this.saveTimer = setTimeout(() => this.saveState(), 400);
 		}), { passive: true });
 	}
-	snapshot(out) {
-		cacheSet(this.ctx.account.key, "home", { data: (this.feed.items.length ? this.feed.items : out.data).slice(0, 30), next_cursor: this.feed.cursor ?? out.next_cursor });
+
+	snapshot(tab) {
+		const f = this.feeds[tab];
+		if (f?.items.length) cacheSet(this.ctx.account.key, `home-${tab}`, { data: f.items.slice(0, 40), next_cursor: f.items.length > 40 ? f.items[39].id : f.cursor });
 	}
+	saveState() {
+		const anchors = { ...this.state.anchors };
+		for (const [t, f] of Object.entries(this.feeds)) {
+			const at = f.anchor();
+			// only places inside the snapshot can be restored
+			if (at && f.items.slice(0, 40).some((p) => p.id === at.pid)) anchors[t] = at;
+			else delete anchors[t];
+		}
+		this.state = { tab: this.tab, anchors };
+		cacheSet(this.ctx.account.key, "home-state", this.state);
+	}
+
 	async checkNew() {
-		if (document.hidden || !this.feed.items.length || !this.el.isConnected || this.el.classList.contains("covered")) return;
+		const feed = this.feeds.following;
+		if (!feed || document.hidden || !feed.items.length || !this.el.isConnected || this.el.classList.contains("covered")) return;
 		try {
 			const out = await this.ctx.api.timeline({ limit: 20 });
-			const fresh = out.data.filter((p) => !this.feed.keys.has(this.feed.keyOf(p)) && !this.pending.some((q) => q.id === p.id));
+			const fresh = out.data.filter((p) => !feed.keys.has(feed.keyOf(p)) && !this.pending.some((q) => q.id === p.id));
 			if (!fresh.length) return;
-			if (this.scroller.scrollTop < 30) {
-				this.feed.append(fresh, { prepend: true }).forEach((_, i) => this.list.children[i]?.classList.add("arrive"));
-				this.snapshot(out);
+			const scroller = $(`[data-pane="following"] .scroll`, this.el);
+			if (scroller.scrollTop < 30) {
+				feed.append(fresh, { prepend: true }).forEach((_, i) => feed.list.children[i]?.classList.add("arrive"));
+				this.snapshot("following");
 				return;
 			}
 			this.pending = [...fresh, ...this.pending];
 			const avs = [...new Map(this.pending.map((p) => [p.author.screen_name, p.author])).values()].slice(0, 3);
 			$(".new-avs", this.pill).innerHTML = avs.map((u) => avatar(u, "av xs")).join("");
-			if (this.pill.hidden) {
+			if (this.pill.hidden && this.tab === "following") {
 				this.pill.hidden = false;
 				this.pill.animate([{ transform: "translate3d(-50%,-30px,0) scale(.8)", opacity: 0 }, { transform: "translate3d(-50%,0,0) scale(1)", opacity: 1 }], { duration: 380, easing: "cubic-bezier(0.32,0.72,0,1)" });
 			}
@@ -145,18 +247,26 @@ export class HomePage extends Page {
 	}
 	showPending(scroll = true) {
 		const posts = this.pending;
+		const feed = this.feeds.following;
+		const scroller = $(`[data-pane="following"] .scroll`, this.el);
 		this.pending = [];
 		this.pill.hidden = true;
-		if (scroll) this.scroller.scrollTo({ top: 0 });
-		if (posts.length) this.feed.append(posts, { prepend: true });
-		if (scroll) requestAnimationFrame(() => this.scroller.scrollTo({ top: 0, behavior: "smooth" }));
+		if (scroll) scroller.scrollTo({ top: 0 });
+		if (posts.length) feed.append(posts, { prepend: true });
+		if (scroll) requestAnimationFrame(() => scroller.scrollTo({ top: 0, behavior: "smooth" }));
 	}
 	show() {
 		this.checkNew();
 	}
+	hide() {
+		this.saveState();
+	}
 	destroy() {
 		clearInterval(this.poll);
-		this.feed.destroy();
+		clearTimeout(this.preload);
+		document.removeEventListener("visibilitychange", this.onHidden);
+		removeEventListener("pagehide", this.onHidden);
+		Object.values(this.feeds).forEach((f) => f.destroy());
 	}
 }
 

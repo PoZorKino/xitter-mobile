@@ -77,10 +77,10 @@ class AccountRoot {
 		compose({ ...this.ctx(), posted: (post, { replyTo }) => this.posted(post, replyTo) }, opts);
 	}
 	posted(post, replyTo) {
-		const home = this.stacks.home.pages[0];
-		if (!replyTo && home?.feed) {
-			home.feed.append([post], { prepend: true });
-			home.el.querySelector(".list > .post")?.classList.add("arrive");
+		const feed = this.stacks.home.pages[0]?.feeds?.following;
+		if (!replyTo && feed) {
+			feed.append([post], { prepend: true });
+			feed.list.querySelector(".post")?.classList.add("arrive");
 		}
 		// a reply lands under its post if that page is open
 		for (const s of Object.values(this.stacks))
