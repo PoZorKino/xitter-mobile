@@ -15,6 +15,7 @@ window.XITTER_CONFIG = {
 	clientMetadata: "https://mobile.xitter.space/oauth-client.json",
 	oauthClients: {
 		"xitter.space": "2112657172314718208",
+		"jr1.xitter.space": "2113020195218915328",
 	},
 	// An instance to offer first: the welcome screen then shows one big
 	// "Continue with <instance>" button. It needs an entry in oauthClients.
