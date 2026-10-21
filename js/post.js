@@ -2,8 +2,8 @@
 // lists them (pull to refresh, paging, new-posts pill).
 
 import { onPostDelete, onPostUpdate } from "./api.js";
-import { actionSheet, toast } from "./nav.js";
-import { $$, ago, avatar, count, el, esc, fullDate, haptic, icon, isRemote, rafThrottle, richText, verifiedBadge } from "./util.js";
+import { actionSheet, sheet, toast } from "./nav.js";
+import { $$, ago, avatar, count, el, esc, fullDate, haptic, icon, isRemote, rafThrottle, richText, verifiedBadge, verifiedKind } from "./util.js";
 
 // ---- markup
 
@@ -211,6 +211,18 @@ export function bindPostActions(root, ctx) {
 		}
 		const tag = t.closest("[data-tag]");
 		if (tag) return ctx.open("search", { q: "#" + tag.dataset.tag });
+		const orgBadge = t.closest("[data-org]");
+		if (orgBadge) {
+			e.stopPropagation();
+			return ctx.open("profile", { name: orgBadge.dataset.org });
+		}
+		const check = t.closest("[data-verified]");
+		if (check) {
+			e.stopPropagation();
+			const postEl = check.closest(".post, .quote");
+			const p = postEl && api.posts.get(postEl.dataset.pid || postEl.dataset.qid);
+			return p && explainBadge(p.author, ctx);
+		}
 
 		const postEl = t.closest(".post");
 		const actEl = t.closest("[data-act]");
@@ -354,6 +366,41 @@ export function bindPostActions(root, ctx) {
 		else if (choice === "profile") ctx.open("profile", { name: p.author.screen_name, user: p.author });
 		else if (choice === "delete") deletePost(p);
 	}
+}
+
+// the sheet a checkmark opens, like X's: why the account has it, and since when
+export function explainBadge(u, ctx) {
+	const kind = verifiedKind(u);
+	if (!kind) return;
+	const t = String(u.verified_type).toLowerCase();
+	const org = u.affiliations?.[0];
+	const why = org
+		? `This account is verified because it's an affiliate of @${esc(org.screen_name)} on ${esc(ctx.account.instance)}.`
+		: t === "business"
+			? `This account is verified because it's an organisation on ${esc(ctx.account.instance)}.`
+			: t === "government"
+				? "This account is verified because it's a government or multilateral organisation account."
+				: t === "government_individual"
+					? "This account is verified because it belongs to a government or multilateral organisation official."
+					: `This account is verified by the ${esc(ctx.account.instance)} team.`;
+	const since = u.verified_since ? new Date(u.verified_since).toLocaleDateString([], { month: "long", year: "numeric" }) : "";
+	const body = el(`<div class="badge-sheet">
+		<svg class="vf big ${kind}"><use href="#i-verified"/></svg>
+		<h2>${kind === "gold" ? "Verified organisation" : kind === "grey" ? "Government" : "Verified"}</h2>
+		<p>${why}</p>
+		${since ? `<p class="dim">Verified since ${esc(since)}</p>` : ""}
+		${org ? `<button class="aff-chip press" data-org="${esc(org.screen_name)}"><img class="aff" src="${esc(org.badge_url || "")}" alt="">${esc(org.name)}</button>` : ""}
+		<button class="pill-btn outline wide" data-close>Got it</button>
+	</div>`);
+	const s = sheet(body);
+	body.addEventListener("click", (e) => {
+		const o = e.target.closest("[data-org]");
+		if (o) {
+			s.close();
+			ctx.open("profile", { name: o.dataset.org });
+		}
+		if (e.target.closest("[data-close]")) s.close();
+	});
 }
 
 // listen for post updates/deletes for a whole account root

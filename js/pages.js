@@ -2,7 +2,7 @@
 
 import { ApiError } from "./api.js";
 import { Page, actionSheet, toast } from "./nav.js";
-import { Feed, bindPostActions, focusHtml, hydrate, observeVideos, postHtml, spinnerSvg } from "./post.js";
+import { Feed, bindPostActions, explainBadge, focusHtml, hydrate, observeVideos, postHtml, spinnerSvg } from "./post.js";
 import { cacheGet, cacheSet, prefs, setPref } from "./store.js";
 import { $, $$, avatar, count, debounce, el, esc, haptic, icon, isRemote, joined, rafThrottle, richText, verifiedBadge } from "./util.js";
 
@@ -395,6 +395,15 @@ export class ProfilePage extends Page {
 		bindUserCells(this.el, ctx);
 		this.el.querySelector("[data-settings]")?.addEventListener("click", () => ctx.open("settings"));
 		this.el.querySelector("[data-more]")?.addEventListener("click", () => this.more());
+		// once: the header is redrawn, its listener isn't
+		$(".profile-head", this.el).addEventListener("click", (e) => {
+			// handled here only: the page's post handler would open them a second time
+			const l = e.target.closest("[data-user].lnk"), t = e.target.closest("[data-tag]"), v = e.target.closest("[data-verified]");
+			if (l || t || v) e.stopPropagation();
+			if (v) return explainBadge(this.user, this.ctx);
+			if (l) return this.ctx.open("profile", { name: l.dataset.user });
+			if (t) this.ctx.open("search", { q: "#" + t.dataset.tag });
+		});
 		const cached = user || ctx.api.cachedUser(name);
 		if (cached) this.renderHead(cached);
 		this.loadUser();
@@ -471,25 +480,20 @@ export class ProfilePage extends Page {
 			<div class="profile-top">${avatar(u, "av big")}<div class="profile-buttons">
 				${me ? `<button class="pill-btn outline" data-edit>Edit profile</button>` : u.viewer ? `<button class="pill-btn ${following ? "outline" : "solid"}" data-follow-main>${following ? "Following" : "Follow"}</button>` : ""}
 			</div></div>
-			<div class="profile-names"><h1>${esc(u.name || u.screen_name)}${verifiedBadge(u)}${u.protected ? icon("lock", "lock") : ""}</h1>
+			<div class="profile-names"><h1>${esc(u.name || u.screen_name)}${verifiedBadge(u, { max: 8 })}${u.protected ? icon("lock", "lock") : ""}</h1>
 				<div class="handle">@${esc(local)}${remote ? `<span class="instance-chip">${icon("globe")}${esc(home)}</span>` : ""}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</div></div>
+			${u.affiliations?.length ? `<div class="profile-affiliations">${u.affiliations.map((o) => `<button class="aff-chip press" data-org="${esc(o.screen_name)}"><img class="aff" src="${esc(o.badge_url || "")}" alt="">${esc(o.name)}</button>`).join("")}</div>` : ""}
 			${u.bio ? `<div class="profile-bio">${richText(u.bio)}</div>` : ""}
 			<div class="profile-meta">
 				${u.location ? `<span>${icon("pin")}${esc(u.location)}</span>` : ""}
 				${site ? `<span>${icon("link")}<a class="lnk" href="${esc(u.website)}" target="_blank" rel="noopener">${esc(site)}</a></span>` : ""}
 				${u.created_at ? `<span>${icon("cal")}${joined(u.created_at)}</span>` : ""}
 			</div>
-			${u.counts ? `<div class="profile-counts"><button data-list="following"><b>${count(u.counts.following)}</b> Following</button><button data-list="followers"><b>${count(u.counts.followers)}</b> Followers</button></div>` : ""}`;
+			${u.counts ? `<div class="profile-counts"><button data-list="following"><b>${count(u.counts.following)}</b> Following</button><button data-list="followers"><b>${count(u.counts.followers)}</b> Followers</button>${u.affiliates_count ? `<span><b>${count(u.affiliates_count)}</b> Affiliates</span>` : ""}</div>` : ""}`;
 		const head = $(".profile-head", this.el);
 		head.querySelectorAll("[data-list]").forEach((b) => (b.onclick = () => this.ctx.open("follows", { name: u.screen_name, which: b.dataset.list })));
 		head.querySelector("[data-edit]")?.addEventListener("click", () => window.open(`${this.ctx.api.origin}/settings/profile`, "_blank", "noopener"));
 		head.querySelector("[data-follow-main]")?.addEventListener("click", (e) => this.toggleFollow(e.currentTarget));
-		head.addEventListener("click", (e) => {
-			const l = e.target.closest("[data-user].lnk");
-			if (l) this.ctx.open("profile", { name: l.dataset.user });
-			const t = e.target.closest("[data-tag]");
-			if (t) this.ctx.open("search", { q: "#" + t.dataset.tag });
-		});
 		head.querySelector(".av.big")?.addEventListener("click", () => this.ctx.viewImage(u.avatar_url));
 	}
 	async toggleFollow(btn) {

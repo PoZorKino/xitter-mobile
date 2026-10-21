@@ -253,6 +253,22 @@ body.card-open #app {
 .vf { width: 17px; height: 17px; flex: none; color: var(--accent); }
 .vf.gold { color: #e2b719; }
 .vf.grey { color: #829aab; }
+.vf[data-verified] { cursor: pointer; }
+.aff, .ubadge { width: 16px; height: 16px; flex: none; border-radius: 3px; object-fit: cover; background: var(--card); cursor: pointer; }
+.ubadge { border-radius: 0; background: none; object-fit: contain; cursor: default; }
+.profile-names h1 .aff, .profile-names h1 .ubadge { width: 20px; height: 20px; }
+.av.sq { border-radius: 22%; }
+.av.big.sq { border-radius: 16%; }
+.profile-affiliations { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.aff-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 5px; border-radius: 999px; border: 1px solid var(--border); font-size: 14px; font-weight: 600; }
+.aff-chip .aff { width: 20px; height: 20px; }
+.profile-counts span { color: var(--dim); }
+.profile-counts span b { color: var(--text); }
+.badge-sheet { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 8px 24px 16px; }
+.badge-sheet h2 { margin: 4px 0 0; font-size: 22px; font-weight: 800; }
+.badge-sheet p { margin: 0; line-height: 21px; }
+.badge-sheet .pill-btn { margin-top: 12px; }
+.vf.big { width: 44px; height: 44px; }
 .ic.lock { width: 15px; height: 15px; color: var(--dim); }
 .ic.globe { width: 14px; height: 14px; color: var(--dim); }
 .instance-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px 1px 5px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; margin-left: 6px; vertical-align: 1px; }

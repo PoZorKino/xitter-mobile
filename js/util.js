@@ -126,14 +126,32 @@ export function rafThrottle(fn) {
 
 // default avatar when none is set
 export const DEFAULT_AVATAR = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#3e4144"/><circle cx="20" cy="15" r="7" fill="#8b98a5"/><path d="M6 36c2-8 8-11 14-11s12 3 14 11" fill="#8b98a5"/></svg>`);
-export const avatar = (u, cls = "av") => `<img class="${cls}" src="${esc(u?.avatar_url || DEFAULT_AVATAR)}" alt="" loading="lazy" decoding="async" onerror="this.src='${DEFAULT_AVATAR}'">`;
+// organisations (businesses and governments) have square pictures, as on X
+export const isOrg = (u) => !!u?.organization || ["business", "government"].includes(String(u?.verified_type || "").toLowerCase());
+export const avatar = (u, cls = "av") => `<img class="${cls}${isOrg(u) ? " sq" : ""}" src="${esc(u?.avatar_url || DEFAULT_AVATAR)}" alt="" loading="lazy" decoding="async" onerror="this.src='${DEFAULT_AVATAR}'">`;
 
-export function verifiedBadge(u) {
-	const t = (u?.verified_type || "").toLowerCase();
-	if (!t) return "";
-	const cls = t.includes("business") || t.includes("gold") || t.includes("org") ? "gold" : t.includes("gov") || t.includes("grey") || t.includes("gray") ? "grey" : "blue";
-	return `<svg class="vf ${cls}" aria-label="Verified"><use href="#i-verified"/></svg>`;
+// the checkmark's colour: gold for organisations, grey for governments and
+// their officials, blue for everyone else verified
+export function verifiedKind(u) {
+	const t = String(u?.verified_type || "").toLowerCase();
+	if (!t) return null;
+	return t === "business" ? "gold" : t.startsWith("government") ? "grey" : "blue";
 }
+
+// Everything after a name: the checkmark, the organisation badge an affiliate
+// wears (it opens the organisation), then custom badges and pride flags.
+// Lists show the first `max` extras; profiles show them all.
+export function verifiedBadge(u, { max = 1 } = {}) {
+	let out = "";
+	const kind = verifiedKind(u);
+	if (kind) out += `<svg class="vf ${kind}" role="img" aria-label="Verified" data-verified><use href="#i-verified"/></svg>`;
+	const extras = [
+		...(u?.affiliations || []).map((o) => `<img class="aff" src="${esc(o.badge_url || DEFAULT_AVATAR)}" alt="${esc(o.name)}" title="${esc(o.name)}" data-org="${esc(o.screen_name)}" loading="lazy" onerror="this.src='${DEFAULT_AVATAR}'">`),
+		...(u?.badges || []).map((b) => `<img class="ubadge" src="${esc(b.url)}" alt="${esc(b.name)}" title="${esc(b.name)}" loading="lazy" onerror="this.remove()">`),
+	];
+	return out + extras.slice(0, max).join("");
+}
+
 export const isRemote = (u) => String(u?.screen_name ?? "").includes("@");
 export const handleOf = (u) => "@" + (u?.screen_name ?? "");
 
