@@ -3,7 +3,7 @@
 
 import { onPostDelete, onPostUpdate } from "./api.js";
 import { actionSheet, sheet, toast } from "./nav.js";
-import { $$, ago, avatar, count, el, esc, fullDate, haptic, icon, isRemote, rafThrottle, richText, verifiedBadge, verifiedKind } from "./util.js";
+import { $$, ago, avatar, count, el, esc, fullDate, haptic, icon, isRemote, rafThrottle, profileLabel, richText, verifiedBadge, verifiedKind } from "./util.js";
 
 // ---- markup
 
@@ -56,6 +56,7 @@ export function postHtml(p, { repost, threadUp = false, threadDown = false, reas
 			<div class="post-left" data-act="user">${avatar(a)}</div>
 			<div class="post-body">
 				<div class="post-head">${nameLine(a, { time: p.created_at })}<button class="more" data-act="more" aria-label="More">${icon("more")}</button></div>
+				${profileLabel(a)}
 				${p.reply_to ? `<div class="replying" data-reply="${esc(p.reply_to)}"></div>` : ""}
 				${p.text ? `<div class="text ${long ? "folded" : ""}">${richText(p.text)}</div>${long ? `<button class="show-more" data-act="show-more">Show more</button>` : ""}` : ""}
 				${mediaGrid(p.media, p.sensitive)}
@@ -76,6 +77,7 @@ export function focusHtml(p) {
 			<div class="focus-names" data-act="user"><div class="name-row"><span class="name">${esc(a.name || a.screen_name)}</span>${verifiedBadge(a)}${a.protected ? icon("lock", "lock") : ""}${isRemote(a) ? icon("globe", "globe") : ""}</div><span class="handle">@${esc(a.screen_name)}</span></div>
 			<button class="more" data-act="more" aria-label="More">${icon("more")}</button>
 		</div>
+		${profileLabel(a)}
 		${p.reply_to ? `<div class="replying" data-reply="${esc(p.reply_to)}"></div>` : ""}
 		${p.text ? `<div class="text big">${richText(p.text)}</div>` : ""}
 		${mediaGrid(p.media, p.sensitive)}

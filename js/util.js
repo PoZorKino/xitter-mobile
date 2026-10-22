@@ -152,6 +152,15 @@ export function verifiedBadge(u, { max = 1 } = {}) {
 	return out + extras.slice(0, max).join("");
 }
 
+// X's profile label under a name: a PCF label (Parody, Commentary or Fan
+// account) or "Automated by @owner" for a bot
+const PCF = { Parody: "Parody account", Commentary: "Commentary account", Fan: "Fan account" };
+export function profileLabel(u) {
+	const out = [];
+	if (u?.parody_label) out.push(`<span class="pcf">${icon("mask")}${esc(PCF[u.parody_label] ?? `${u.parody_label} account`)}</span>`);
+	if (u?.automated_by) out.push(`<span class="pcf">${icon("bot")}Automated by <a class="lnk" data-user="${esc(u.automated_by)}">@${esc(u.automated_by)}</a></span>`);
+	return out.length ? `<div class="pcf-row">${out.join("")}</div>` : "";
+}
 export const isRemote = (u) => String(u?.screen_name ?? "").includes("@");
 export const handleOf = (u) => "@" + (u?.screen_name ?? "");
 

@@ -4,7 +4,7 @@ import { ApiError } from "./api.js";
 import { Page, actionSheet, toast } from "./nav.js";
 import { Feed, bindPostActions, explainBadge, focusHtml, hydrate, observeVideos, postHtml, spinnerSvg } from "./post.js";
 import { cacheGet, cacheSet, prefs, setPref } from "./store.js";
-import { $, $$, avatar, count, debounce, el, esc, haptic, icon, isRemote, joined, rafThrottle, richText, verifiedBadge } from "./util.js";
+import { $, $$, avatar, count, debounce, el, esc, haptic, icon, isRemote, joined, rafThrottle, profileLabel, richText, verifiedBadge } from "./util.js";
 
 const backBtn = `<button class="bar-btn back press" data-back aria-label="Back">${icon("back")}</button>`;
 
@@ -36,7 +36,7 @@ export function userCell(u, { me } = {}) {
 	return `<div class="user-cell press" data-user="${esc(u.screen_name)}">
 		${avatar(u)}
 		<div class="user-cell-body">
-			<div class="user-cell-head"><div class="user-cell-names"><div class="name-row"><span class="name">${esc(u.name || u.screen_name)}</span>${verifiedBadge(u)}${u.protected ? icon("lock", "lock") : ""}${isRemote(u) ? icon("globe", "globe") : ""}</div><span class="handle">@${esc(u.screen_name)}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</span></div>
+			<div class="user-cell-head"><div class="user-cell-names"><div class="name-row"><span class="name">${esc(u.name || u.screen_name)}</span>${verifiedBadge(u)}${u.protected ? icon("lock", "lock") : ""}${isRemote(u) ? icon("globe", "globe") : ""}</div><span class="handle">@${esc(u.screen_name)}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</span>${profileLabel(u)}</div>
 			${mine || !u.viewer ? "" : `<button class="pill-btn ${following ? "outline" : "solid"}" data-follow>${following ? "Following" : "Follow"}</button>`}</div>
 			${u.bio ? `<div class="user-cell-bio">${richText(u.bio)}</div>` : ""}
 		</div>
@@ -481,7 +481,7 @@ export class ProfilePage extends Page {
 				${me ? `<button class="pill-btn outline" data-edit>Edit profile</button>` : u.viewer ? `<button class="pill-btn ${following ? "outline" : "solid"}" data-follow-main>${following ? "Following" : "Follow"}</button>` : ""}
 			</div></div>
 			<div class="profile-names"><h1>${esc(u.name || u.screen_name)}${verifiedBadge(u, { max: 8 })}${u.protected ? icon("lock", "lock") : ""}</h1>
-				<div class="handle">@${esc(local)}${remote ? `<span class="instance-chip">${icon("globe")}${esc(home)}</span>` : ""}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</div></div>
+				<div class="handle">@${esc(local)}${remote ? `<span class="instance-chip">${icon("globe")}${esc(home)}</span>` : ""}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</div>${profileLabel(u)}</div>
 			${u.affiliations?.length ? `<div class="profile-affiliations">${u.affiliations.map((o) => `<button class="aff-chip press" data-org="${esc(o.screen_name)}"><img class="aff" src="${esc(o.badge_url || "")}" alt="">${esc(o.name)}</button>`).join("")}</div>` : ""}
 			${u.bio ? `<div class="profile-bio">${richText(u.bio)}</div>` : ""}
 			<div class="profile-meta">
