@@ -374,7 +374,7 @@ export function bindPostActions(root, ctx) {
 export function explainBadge(u, ctx) {
 	const kind = verifiedKind(u);
 	if (!kind) return;
-	const t = String(u.verified_type).toLowerCase();
+	const t = String(u.verified_type || "").toLowerCase();
 	const org = u.affiliations?.[0];
 	const why = org
 		? `This account is verified because it's an affiliate of @${esc(org.screen_name)} on ${esc(ctx.account.instance)}.`
