@@ -463,6 +463,10 @@ a.pcf { text-decoration: none; }
 .profile-bar .bar-title { opacity: 0; transform: translateY(10px); transition: opacity 0.25s, transform 0.25s var(--ease); color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
 .profile-bar .bar-title span { color: rgba(255, 255, 255, 0.85); }
 .profile-bar.titled .bar-title { opacity: 1; transform: none; }
+/* once the name is up, the bar is a real bar again: taps stop falling through to posts and text behind it is hidden */
+.profile-bar.titled { background: var(--bar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); border-bottom: 0.5px solid var(--border); pointer-events: auto; }
+.profile-bar.titled .bar-title, .profile-bar.titled .bar-title span { color: var(--text); text-shadow: none; }
+.profile-bar.titled .bar-title span { color: var(--dim); }
 .banner-wrap { position: sticky; top: calc(var(--bar-row) - 104px); height: calc(var(--safe-top) + 104px); z-index: 1; overflow: visible; pointer-events: none; }
 .banner-wrap.stuck { z-index: 3; }
 .banner { position: absolute; inset: 0; background: #333639 center/cover no-repeat; transform-origin: 50% 100%; will-change: transform, filter; }
