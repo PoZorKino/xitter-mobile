@@ -24,7 +24,7 @@ instance's public API (`/api/v1`).
 - **Notifications** for replies, mentions, new followers, likes and reposts, on every
   account: unread badges in the tab bar, the switcher and the app icon, an in-app banner when
   another account gets something (tap it to switch), and system notifications.
-- Home timeline, Explore (latest and popular across the federation), threads, profiles
+- Home timeline (Following, plus Latest and Popular across the federation), threads, profiles
   (posts, replies, media), followers/following, search for posts and people with Xitter's
   operators, and composing posts, replies, quotes and threads with up to 4 photos or videos
   each (large videos upload in chunks).

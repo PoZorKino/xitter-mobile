@@ -270,41 +270,6 @@ export class HomePage extends Page {
 	}
 }
 
-// ---- Explore: what's new across the instance and its federation
-
-export class ExplorePage extends Page {
-	constructor(ctx) {
-		super(ctx);
-		this.el = el(`<section class="page">${bar({ title: "Explore", sub: esc(ctx.account.instance) })}
-			<div class="seg sticky-seg"><button class="on" data-mode="latest">Latest</button><button data-mode="top">Popular this week</button></div>
-			<div class="scroll"><div class="list"></div></div></section>`);
-		wireBack(this);
-		bindPostActions(this.el, ctx);
-		const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-		const mk = (mode) => {
-			$(".list", this.el).innerHTML = "";
-			$$(".sentinel, .ptr", this.el).forEach((n) => n.remove());
-			this.feed?.destroy();
-			this.feed = new Feed({
-				ctx, scroller: this.scroller, list: $(".list", this.el),
-				load: (cursor) => ctx.api.searchPosts(`since:${since}`, { sort: mode === "top" ? "top" : undefined, cursor }),
-				empty: "Nothing posted this week.",
-			});
-			this.feed.more();
-		};
-		this.el.querySelector(".seg").addEventListener("click", (e) => {
-			const b = e.target.closest("button");
-			if (!b || b.classList.contains("on")) return;
-			$$(".seg button", this.el).forEach((x) => x.classList.toggle("on", x === b));
-			mk(b.dataset.mode);
-		});
-		mk("latest");
-	}
-	destroy() {
-		this.feed?.destroy();
-	}
-}
-
 // ---- A post and its conversation
 
 export class PostPage extends Page {
