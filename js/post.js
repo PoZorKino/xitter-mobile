@@ -20,8 +20,9 @@ function mediaGrid(media, sensitive) {
 			const alt = esc(m.alt_text || "");
 			if (m.type === "video")
 				return `<div class="m m-video" data-act="media" data-i="${i}"><video src="${esc(m.url)}" poster="${esc(m.poster_url || "")}" preload="none" playsinline muted loop></video><span class="play">${playIcon}</span></div>`;
+			// Xitter serves GIFs as the .gif file itself, not an MP4: an <img> animates, a <video> stays black
 			if (m.type === "gif")
-				return `<div class="m" data-act="media" data-i="${i}"><video src="${esc(m.url)}" autoplay playsinline muted loop></video><span class="gif-tag">GIF</span></div>`;
+				return `<div class="m" data-act="media" data-i="${i}"><img src="${esc(m.url)}" alt="${alt}" loading="lazy" decoding="async"><span class="gif-tag">GIF</span></div>`;
 			return `<div class="m" data-act="media" data-i="${i}"><img src="${esc(m.url)}" alt="${alt}" loading="lazy" decoding="async">${m.alt_text ? `<span class="alt-tag">ALT</span>` : ""}</div>`;
 		})
 		.join("")}${sensitive ? `<button class="sensitive-cover" data-act="reveal"><b>Content warning</b><span>The author flagged this as sensitive.</span><em>Show</em></button>` : ""}</div>`;
@@ -84,7 +85,7 @@ export function focusHtml(p) {
 		${mediaGrid(p.media, p.sensitive)}
 		${p.quote_of ? `<div class="quote-slot" data-quote="${esc(p.quote_of)}"><div class="quote skeleton"></div></div>` : ""}
 		<div class="focus-meta"><time>${fullDate(p.created_at)}</time>${p.edited_at ? ` · <span>Edited</span>` : ""}${c.views ? ` · <b>${count(c.views)}</b> Views` : ""}</div>
-		<div class="focus-stats">${stat(c.reposts, "Repost")}${stat(c.quotes, "Quote")}${stat(c.likes, "Like")}${stat(c.bookmarks, "Bookmark")}</div>
+		<div class="focus-stats">${stat(c.reposts, "Repost")}${stat(c.quotes, "Quote")}${stat(c.likes, "Like", "likers")}${stat(c.bookmarks, "Bookmark")}</div>
 		${actionsRow(p, true)}
 	</article>`;
 }
@@ -279,6 +280,9 @@ export function bindPostActions(root, ctx) {
 				e.stopPropagation();
 				actEl.previousElementSibling?.classList.remove("folded");
 				return actEl.remove();
+			case "likers":
+				e.stopPropagation();
+				return ctx.open("likers", { id });
 			case "stat":
 				return;
 		}

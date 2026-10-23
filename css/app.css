@@ -202,6 +202,8 @@ body.card-open #app {
 .tab-av { width: 28px; height: 28px; border-radius: 50%; display: block; transition: transform 0.15s, box-shadow 0.2s; }
 .tab-av .av { width: 28px; height: 28px; }
 .tab.on .tab-av { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text); }
+/* the ring follows an organisation's square picture instead of drawing a circle around it */
+.tab-av:has(.av.sq) { border-radius: 22%; }
 .tab .badge-dot { top: 8px; right: calc(50% - 18px); }
 .tab-badge {
 	position: absolute;
@@ -399,7 +401,8 @@ a.pcf { text-decoration: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .retry { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--dim); padding: 16px; text-align: center; }
 .retry b { color: #fff; background: var(--accent); padding: 6px 18px; border-radius: 999px; }
-.ptr { position: relative; height: 0; z-index: 1; transition: height 0.3s var(--ease); }
+/* above the profile banner (3 when stuck) and tabs (4), under the bar (10) */
+.ptr { position: relative; height: 0; z-index: 5; transition: height 0.3s var(--ease); }
 .ptr-spin { position: absolute; left: 50%; top: -42px; width: 28px; height: 28px; margin-left: -14px; color: var(--accent); opacity: 0; }
 .ptr-spin svg { width: 28px; height: 28px; }
 .ptr.refreshing .ptr-spin { opacity: 1 !important; animation: spin 0.8s linear infinite; }
@@ -463,6 +466,10 @@ a.pcf { text-decoration: none; }
 .profile-bar .bar-title { opacity: 0; transform: translateY(10px); transition: opacity 0.25s, transform 0.25s var(--ease); color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
 .profile-bar .bar-title span { color: rgba(255, 255, 255, 0.85); }
 .profile-bar.titled .bar-title { opacity: 1; transform: none; }
+/* once the name is up, the bar is a real bar again: taps stop falling through to posts and text behind it is hidden */
+.profile-bar.titled { background: var(--bar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); border-bottom: 0.5px solid var(--border); pointer-events: auto; }
+.profile-bar.titled .bar-title, .profile-bar.titled .bar-title span { color: var(--text); text-shadow: none; }
+.profile-bar.titled .bar-title span { color: var(--dim); }
 .banner-wrap { position: sticky; top: calc(var(--bar-row) - 104px); height: calc(var(--safe-top) + 104px); z-index: 1; overflow: visible; pointer-events: none; }
 .banner-wrap.stuck { z-index: 3; }
 .banner { position: absolute; inset: 0; background: #333639 center/cover no-repeat; transform-origin: 50% 100%; will-change: transform, filter; }
@@ -739,6 +746,22 @@ body.card-open .toast { bottom: auto; top: calc(var(--safe-top) + 72px); }
 .field:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .field.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
 .field-wrap .pill-btn { height: 48px; }
+
+/* ---- edit profile */
+.edit-profile .scroll { padding-top: calc(var(--safe-top) + var(--bar-row)); }
+.edit-banner { position: relative; height: 120px; background: #333639 center/cover no-repeat; }
+:root[data-theme="light"] .edit-banner { background-color: #cfd9de; }
+.edit-av { position: relative; width: 80px; margin: -36px 0 0 16px; }
+.edit-pick { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; cursor: pointer; }
+.edit-pick .ic { width: 42px; height: 42px; padding: 9px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.edit-av .av { display: block; }
+.edit-fields { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+.edit-field { display: flex; flex-direction: column; gap: 4px; }
+.edit-field > span { font-size: 13px; color: var(--dim); padding-left: 2px; }
+.edit-field .field { width: 100%; }
+.edit-field .field.area { height: auto; min-height: 88px; padding: 12px 14px; resize: none; line-height: 20px; }
+.edit-profile .bar-right .pill-btn { height: 32px; font-size: 14px; }
+.edit-profile .bar-right .pill-btn[disabled] { opacity: 0.5; }
 .auth .group { margin: 0; }
 .auth .group-label { padding: 24px 4px 8px; }
 .loading-row { padding: 16px; color: var(--dim); }

@@ -11,7 +11,7 @@ import { Stack, banner, pushBack, dropBack, sheet, toast } from "./nav.js";
 import { MoneyPage, moneyKnown } from "./money.js";
 import { NotificationCenter, NotificationsPage } from "./notifications.js";
 import { watchPosts } from "./post.js";
-import { ExplorePage, FollowsPage, HomePage, PostPage, ProfilePage, SearchPage, SearchResultsPage, SettingsPage } from "./pages.js";
+import { EditProfilePage, FollowsPage, HomePage, LikersPage, PostPage, ProfilePage, SearchPage, SearchResultsPage, SettingsPage } from "./pages.js";
 import * as store from "./store.js";
 import { $, $$, avatar, el, esc, haptic, icon, pressable } from "./util.js";
 
@@ -66,9 +66,20 @@ class AccountRoot {
 		if (type === "post") page = new PostPage(ctx, params);
 		else if (type === "profile") page = new ProfilePage(ctx, params);
 		else if (type === "search") page = new SearchResultsPage(ctx, params);
-		else if (type === "explore") page = new ExplorePage(ctx);
+		else if (type === "explore") {
+			// Explore was the same Latest and Popular feeds the home tabs have, so it's
+			// the home Latest tab now
+			this.selectTab("home");
+			const home = this.stacks.home;
+			if (home.pages.length > 1) home.popToRoot();
+			home.pages[0]?.select("latest", { animate: true });
+			this.app.updateChrome();
+			return;
+		}
 		else if (type === "money") page = new MoneyPage(ctx);
 		else if (type === "follows") page = new FollowsPage(ctx, params);
+		else if (type === "likers") page = new LikersPage(ctx, params);
+		else if (type === "editProfile") page = new EditProfilePage(ctx, params);
 		else if (type === "settings") page = new SettingsPage(ctx);
 		if (!page) return;
 		this.app.el.classList.remove("bar-hidden");

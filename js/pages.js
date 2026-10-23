@@ -3,7 +3,7 @@
 import { ApiError } from "./api.js";
 import { Page, actionSheet, toast } from "./nav.js";
 import { Feed, bindPostActions, explainBadge, focusHtml, hydrate, observeVideos, postHtml, spinnerSvg } from "./post.js";
-import { cacheGet, cacheSet, prefs, setPref } from "./store.js";
+import { cacheGet, cacheSet, prefs, setPref, updateAccount } from "./store.js";
 import { $, $$, avatar, count, debounce, el, esc, haptic, icon, isRemote, joined, rafThrottle, profileLabel, richText, verifiedBadge } from "./util.js";
 
 const backBtn = `<button class="bar-btn back press" data-back aria-label="Back">${icon("back")}</button>`;
@@ -270,41 +270,6 @@ export class HomePage extends Page {
 	}
 }
 
-// ---- Explore: what's new across the instance and its federation
-
-export class ExplorePage extends Page {
-	constructor(ctx) {
-		super(ctx);
-		this.el = el(`<section class="page">${bar({ title: "Explore", sub: esc(ctx.account.instance) })}
-			<div class="seg sticky-seg"><button class="on" data-mode="latest">Latest</button><button data-mode="top">Popular this week</button></div>
-			<div class="scroll"><div class="list"></div></div></section>`);
-		wireBack(this);
-		bindPostActions(this.el, ctx);
-		const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-		const mk = (mode) => {
-			$(".list", this.el).innerHTML = "";
-			$$(".sentinel, .ptr", this.el).forEach((n) => n.remove());
-			this.feed?.destroy();
-			this.feed = new Feed({
-				ctx, scroller: this.scroller, list: $(".list", this.el),
-				load: (cursor) => ctx.api.searchPosts(`since:${since}`, { sort: mode === "top" ? "top" : undefined, cursor }),
-				empty: "Nothing posted this week.",
-			});
-			this.feed.more();
-		};
-		this.el.querySelector(".seg").addEventListener("click", (e) => {
-			const b = e.target.closest("button");
-			if (!b || b.classList.contains("on")) return;
-			$$(".seg button", this.el).forEach((x) => x.classList.toggle("on", x === b));
-			mk(b.dataset.mode);
-		});
-		mk("latest");
-	}
-	destroy() {
-		this.feed?.destroy();
-	}
-}
-
 // ---- A post and its conversation
 
 export class PostPage extends Page {
@@ -450,7 +415,7 @@ export class ProfilePage extends Page {
 			load:
 				tab === "media"
 					? (cursor) => ctx.api.searchPosts(`from:${n} filter:media`, { cursor })
-					: (cursor) => ctx.api.userPosts(n, { cursor, replies: tab === "replies" }),
+					: (cursor) => ctx.api.userPosts(n, { cursor, replies: tab === "replies" ? "only" : false }),
 			empty: tab === "media" ? "No photos or videos yet." : "No posts yet.",
 			onRefresh: () => this.loadUser(),
 		});
@@ -492,7 +457,8 @@ export class ProfilePage extends Page {
 			${u.counts ? `<div class="profile-counts"><button data-list="following"><b>${count(u.counts.following)}</b> Following</button><button data-list="followers"><b>${count(u.counts.followers)}</b> Followers</button>${u.affiliates_count ? `<span><b>${count(u.affiliates_count)}</b> Affiliates</span>` : ""}</div>` : ""}`;
 		const head = $(".profile-head", this.el);
 		head.querySelectorAll("[data-list]").forEach((b) => (b.onclick = () => this.ctx.open("follows", { name: u.screen_name, which: b.dataset.list })));
-		head.querySelector("[data-edit]")?.addEventListener("click", () => window.open(`${this.ctx.api.origin}/settings/profile`, "_blank", "noopener"));
+		head.querySelectorAll(".aff-chip").forEach((b) => (b.onclick = () => this.ctx.open("profile", { name: b.dataset.org })));
+		head.querySelector("[data-edit]")?.addEventListener("click", () => this.ctx.open("editProfile", { user: u, onSaved: () => this.loadUser() }));
 		head.querySelector("[data-follow-main]")?.addEventListener("click", (e) => this.toggleFollow(e.currentTarget));
 		head.querySelector(".av.big")?.addEventListener("click", () => this.ctx.viewImage(u.avatar_url));
 	}
@@ -559,6 +525,96 @@ export class FollowsPage extends Page {
 			load(b.dataset.w);
 		});
 		load(which);
+	}
+}
+
+// who liked a post; opened from the Likes stat under a post
+export class LikersPage extends Page {
+	constructor(ctx, { id }) {
+		super(ctx);
+		this.el = el(`<section class="page">${bar({ title: "Liked by" })}
+			<div class="scroll"><div class="list"><div class="loading">${spinnerSvg}</div></div></div></section>`);
+		wireBack(this);
+		bindUserCells(this.el, ctx);
+		const list = $(".list", this.el);
+		ctx.api
+			.likers(id, 200)
+			.then((users) => {
+				list.innerHTML = users.length ? users.map((u) => userCell(u, { me: ctx.account.user.screen_name })).join("") : `<div class="empty">No likes yet.</div>`;
+			})
+			.catch((e) => {
+				list.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+			});
+	}
+}
+
+// edit your own profile in the app (PATCH /me, Xitter from today); a new
+// picture goes up through POST /media first. Older instances answer 404 and
+// the page falls back to the instance's own editor.
+export class EditProfilePage extends Page {
+	constructor(ctx, { user, onSaved }) {
+		super(ctx);
+		const u = user;
+		this.el = el(`<section class="page edit-profile">${bar({ title: "Edit profile", right: `<button class="pill-btn solid" data-save>Save</button>` })}
+			<div class="scroll">
+				<div class="edit-banner" style="${u.banner_url ? `background-image:url('${esc(u.banner_url)}')` : ""}"><label class="edit-pick">${icon("image")}<input type="file" accept="image/*" data-pick="banner" hidden></label></div>
+				<div class="edit-av">${avatar(u, "av big")}<label class="edit-pick">${icon("image")}<input type="file" accept="image/*" data-pick="avatar" hidden></label></div>
+				<div class="edit-fields">
+					<label class="edit-field"><span>Name</span><input class="field" name="name" maxlength="50" autocomplete="off"></label>
+					<label class="edit-field"><span>Bio</span><textarea class="field area" name="bio" maxlength="160" rows="3"></textarea></label>
+					<label class="edit-field"><span>Location</span><input class="field" name="location" maxlength="30" autocomplete="off"></label>
+					<label class="edit-field"><span>Website</span><input class="field" name="website" maxlength="100" inputmode="url" autocomplete="off" placeholder="https://"></label>
+				</div>
+			</div></section>`);
+		wireBack(this);
+		// values go in as properties, not markup, so quotes and tags in a bio stay as typed
+		const f = (name) => this.el.querySelector(`[name="${name}"]`);
+		f("name").value = u.name || "";
+		f("bio").value = u.bio || "";
+		f("location").value = u.location || "";
+		f("website").value = u.website || "";
+		const pictures = {};
+		this.el.addEventListener("change", async (e) => {
+			const input = e.target.closest("[data-pick]");
+			const file = input?.files?.[0];
+			if (!file) return;
+			input.value = "";
+			const which = input.dataset.pick;
+			const box = input.closest(".edit-pick").parentElement;
+			box.classList.add("busy");
+			try {
+				pictures[which] = await ctx.api.upload(file);
+				const url = URL.createObjectURL(file);
+				if (which === "banner") box.style.backgroundImage = `url('${url}')`;
+				else box.querySelector(".av").src = url;
+			} catch (err) {
+				toast(err.message, { error: true });
+			}
+			box.classList.remove("busy");
+		});
+		const save = this.el.querySelector("[data-save]");
+		save.addEventListener("click", async () => {
+			const fields = { name: f("name").value.trim(), bio: f("bio").value, location: f("location").value.trim(), website: f("website").value.trim() };
+			if (!fields.name) return toast("Name can't be blank.", { error: true });
+			if (pictures.avatar) fields.avatar_media_id = pictures.avatar;
+			if (pictures.banner) fields.banner_media_id = pictures.banner;
+			save.disabled = true;
+			try {
+				const fresh = await ctx.api.updateProfile(fields);
+				updateAccount(ctx.account.key, { user: fresh });
+				ctx.account.user = fresh;
+				haptic(10);
+				toast("Profile saved");
+				onSaved?.(fresh);
+				ctx.back();
+			} catch (err) {
+				if (err.status === 404) {
+					// the instance predates PATCH /me: its own editor it is
+					window.open(`${ctx.api.origin}/settings/profile`, "_blank", "noopener");
+				} else toast(err.message, { error: true });
+				save.disabled = false;
+			}
+		});
 	}
 }
 

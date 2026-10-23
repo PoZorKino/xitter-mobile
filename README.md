@@ -24,7 +24,7 @@ instance's public API (`/api/v1`).
 - **Notifications** for replies, mentions, new followers, likes and reposts, on every
   account: unread badges in the tab bar, the switcher and the app icon, an in-app banner when
   another account gets something (tap it to switch), and system notifications.
-- Home timeline, Explore (latest and popular across the federation), threads, profiles
+- Home timeline (Following, plus Latest and Popular across the federation), threads, profiles
   (posts, replies, media), followers/following, search for posts and people with Xitter's
   operators, and composing posts, replies, quotes and threads with up to 4 photos or videos
   each (large videos upload in chunks).
@@ -100,7 +100,7 @@ once it's installed that way.
 | `js/nav.js` | Stacks, push/pop, edge swipe, sheets, banners, back button |
 | `js/api.js` | `/api/v1` client, shared post cache, uploads |
 | `js/post.js` | Post rendering, actions, feeds with paging and pull to refresh |
-| `js/pages.js` | Home, Explore, post, profile, follows, search, settings |
+| `js/pages.js` | Home, post, profile, edit profile, follows, liked by, search, settings |
 | `js/notifications.js`, `js/notify-core.js` | Notifications tab and the checker |
 | `js/compose.js` | Composer |
 | `js/media.js` | Media viewer |

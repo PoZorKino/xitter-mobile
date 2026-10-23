@@ -14,7 +14,7 @@ export function viewMedia(ctx, post, index = 0, { images } = {}) {
 	const root = el(`<div class="viewer">
 		<div class="viewer-bg"></div>
 		<div class="viewer-track">${media
-			.map((m, i) => `<div class="slide" data-i="${i}">${m.type === "photo" ? `<img src="${esc(m.url)}" alt="${esc(m.alt_text || "")}" draggable="false">` : `<video src="${esc(m.url)}" poster="${esc(m.poster_url || "")}" playsinline ${m.type === "gif" ? "autoplay loop muted" : "controls"}></video>`}</div>`)
+			.map((m, i) => `<div class="slide" data-i="${i}">${m.type !== "video" ? `<img src="${esc(m.url)}" alt="${esc(m.alt_text || "")}" draggable="false">` : `<video src="${esc(m.url)}" poster="${esc(m.poster_url || "")}" playsinline controls></video>`}</div>`)
 			.join("")}</div>
 		<div class="viewer-top"><button class="viewer-btn press" data-close aria-label="Close">${icon("close")}</button>${media.length > 1 ? `<span class="viewer-count"></span>` : ""}<span></span></div>
 		${post ? `<div class="viewer-bottom post focus" data-pid="${esc(post.id)}" data-user="${esc(post.author.screen_name)}">

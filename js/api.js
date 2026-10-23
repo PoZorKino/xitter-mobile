@@ -114,8 +114,19 @@ export class Api {
 	cachedUser(name) {
 		return this.users.get(String(name).toLowerCase());
 	}
+	// replies: false for posts, true to mix replies in, "only" for a Replies tab. An
+	// instance that predates replies=only answers with its posts too; those are dropped here
 	userPosts(name, { cursor, replies, limit = 25 } = {}) {
-		return this.get(`/users/${encodeURIComponent(name)}/posts`, { cursor, limit, replies: replies ? "true" : undefined }).then((r) => this.rememberPage(r));
+		return this.get(`/users/${encodeURIComponent(name)}/posts`, { cursor, limit, replies: replies === "only" ? "only" : replies ? "true" : undefined })
+			.then((r) => this.rememberPage(r))
+			.then((r) => (replies === "only" ? { ...r, data: (r.data || []).filter((p) => p.reply_to) } : r));
+	}
+	// PATCH /me (Xitter from today): name, bio, location, website, avatar_media_id, banner_media_id, remove_banner
+	updateProfile(fields) {
+		return this.request("PATCH", "/me", { body: fields }).then((r) => r.data);
+	}
+	likers(id, limit = 100) {
+		return this.get(`/posts/${id}/likes`, { limit }).then((r) => r.data);
 	}
 	follows(name, which, limit = 100) {
 		return this.get(`/users/${encodeURIComponent(name)}/${which}`, { limit }).then((r) => r.data);
