@@ -746,6 +746,22 @@ body.card-open .toast { bottom: auto; top: calc(var(--safe-top) + 72px); }
 .field:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .field.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
 .field-wrap .pill-btn { height: 48px; }
+
+/* ---- edit profile */
+.edit-profile .scroll { padding-top: calc(var(--safe-top) + var(--bar-row)); }
+.edit-banner { position: relative; height: 120px; background: #333639 center/cover no-repeat; }
+:root[data-theme="light"] .edit-banner { background-color: #cfd9de; }
+.edit-av { position: relative; width: 80px; margin: -36px 0 0 16px; }
+.edit-pick { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; cursor: pointer; }
+.edit-pick .ic { width: 42px; height: 42px; padding: 9px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.edit-av .av { display: block; }
+.edit-fields { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+.edit-field { display: flex; flex-direction: column; gap: 4px; }
+.edit-field > span { font-size: 13px; color: var(--dim); padding-left: 2px; }
+.edit-field .field { width: 100%; }
+.edit-field .field.area { height: auto; min-height: 88px; padding: 12px 14px; resize: none; line-height: 20px; }
+.edit-profile .bar-right .pill-btn { height: 32px; font-size: 14px; }
+.edit-profile .bar-right .pill-btn[disabled] { opacity: 0.5; }
 .auth .group { margin: 0; }
 .auth .group-label { padding: 24px 4px 8px; }
 .loading-row { padding: 16px; color: var(--dim); }

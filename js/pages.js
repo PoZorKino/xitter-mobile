@@ -3,7 +3,7 @@
 import { ApiError } from "./api.js";
 import { Page, actionSheet, toast } from "./nav.js";
 import { Feed, bindPostActions, explainBadge, focusHtml, hydrate, observeVideos, postHtml, spinnerSvg } from "./post.js";
-import { cacheGet, cacheSet, prefs, setPref } from "./store.js";
+import { cacheGet, cacheSet, prefs, setPref, updateAccount } from "./store.js";
 import { $, $$, avatar, count, debounce, el, esc, haptic, icon, isRemote, joined, rafThrottle, profileLabel, richText, verifiedBadge } from "./util.js";
 
 const backBtn = `<button class="bar-btn back press" data-back aria-label="Back">${icon("back")}</button>`;
@@ -493,7 +493,7 @@ export class ProfilePage extends Page {
 		const head = $(".profile-head", this.el);
 		head.querySelectorAll("[data-list]").forEach((b) => (b.onclick = () => this.ctx.open("follows", { name: u.screen_name, which: b.dataset.list })));
 		head.querySelectorAll(".aff-chip").forEach((b) => (b.onclick = () => this.ctx.open("profile", { name: b.dataset.org })));
-		head.querySelector("[data-edit]")?.addEventListener("click", () => window.open(`${this.ctx.api.origin}/settings/profile`, "_blank", "noopener"));
+		head.querySelector("[data-edit]")?.addEventListener("click", () => this.ctx.open("editProfile", { user: u, onSaved: () => this.loadUser() }));
 		head.querySelector("[data-follow-main]")?.addEventListener("click", (e) => this.toggleFollow(e.currentTarget));
 		head.querySelector(".av.big")?.addEventListener("click", () => this.ctx.viewImage(u.avatar_url));
 	}
@@ -580,6 +580,76 @@ export class LikersPage extends Page {
 			.catch((e) => {
 				list.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
 			});
+	}
+}
+
+// edit your own profile in the app (PATCH /me, Xitter from today); a new
+// picture goes up through POST /media first. Older instances answer 404 and
+// the page falls back to the instance's own editor.
+export class EditProfilePage extends Page {
+	constructor(ctx, { user, onSaved }) {
+		super(ctx);
+		const u = user;
+		this.el = el(`<section class="page edit-profile">${bar({ title: "Edit profile", right: `<button class="pill-btn solid" data-save>Save</button>` })}
+			<div class="scroll">
+				<div class="edit-banner" style="${u.banner_url ? `background-image:url('${esc(u.banner_url)}')` : ""}"><label class="edit-pick">${icon("image")}<input type="file" accept="image/*" data-pick="banner" hidden></label></div>
+				<div class="edit-av">${avatar(u, "av big")}<label class="edit-pick">${icon("image")}<input type="file" accept="image/*" data-pick="avatar" hidden></label></div>
+				<div class="edit-fields">
+					<label class="edit-field"><span>Name</span><input class="field" name="name" maxlength="50" autocomplete="off"></label>
+					<label class="edit-field"><span>Bio</span><textarea class="field area" name="bio" maxlength="160" rows="3"></textarea></label>
+					<label class="edit-field"><span>Location</span><input class="field" name="location" maxlength="30" autocomplete="off"></label>
+					<label class="edit-field"><span>Website</span><input class="field" name="website" maxlength="100" inputmode="url" autocomplete="off" placeholder="https://"></label>
+				</div>
+			</div></section>`);
+		wireBack(this);
+		// values go in as properties, not markup, so quotes and tags in a bio stay as typed
+		const f = (name) => this.el.querySelector(`[name="${name}"]`);
+		f("name").value = u.name || "";
+		f("bio").value = u.bio || "";
+		f("location").value = u.location || "";
+		f("website").value = u.website || "";
+		const pictures = {};
+		this.el.addEventListener("change", async (e) => {
+			const input = e.target.closest("[data-pick]");
+			const file = input?.files?.[0];
+			if (!file) return;
+			input.value = "";
+			const which = input.dataset.pick;
+			const box = input.closest(".edit-pick").parentElement;
+			box.classList.add("busy");
+			try {
+				pictures[which] = await ctx.api.upload(file);
+				const url = URL.createObjectURL(file);
+				if (which === "banner") box.style.backgroundImage = `url('${url}')`;
+				else box.querySelector(".av").src = url;
+			} catch (err) {
+				toast(err.message, { error: true });
+			}
+			box.classList.remove("busy");
+		});
+		const save = this.el.querySelector("[data-save]");
+		save.addEventListener("click", async () => {
+			const fields = { name: f("name").value.trim(), bio: f("bio").value, location: f("location").value.trim(), website: f("website").value.trim() };
+			if (!fields.name) return toast("Name can't be blank.", { error: true });
+			if (pictures.avatar) fields.avatar_media_id = pictures.avatar;
+			if (pictures.banner) fields.banner_media_id = pictures.banner;
+			save.disabled = true;
+			try {
+				const fresh = await ctx.api.updateProfile(fields);
+				updateAccount(ctx.account.key, { user: fresh });
+				ctx.account.user = fresh;
+				haptic(10);
+				toast("Profile saved");
+				onSaved?.(fresh);
+				ctx.back();
+			} catch (err) {
+				if (err.status === 404) {
+					// the instance predates PATCH /me: its own editor it is
+					window.open(`${ctx.api.origin}/settings/profile`, "_blank", "noopener");
+				} else toast(err.message, { error: true });
+				save.disabled = false;
+			}
+		});
 	}
 }
 

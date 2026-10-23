@@ -100,7 +100,7 @@ once it's installed that way.
 | `js/nav.js` | Stacks, push/pop, edge swipe, sheets, banners, back button |
 | `js/api.js` | `/api/v1` client, shared post cache, uploads |
 | `js/post.js` | Post rendering, actions, feeds with paging and pull to refresh |
-| `js/pages.js` | Home, Explore, post, profile, follows, search, settings |
+| `js/pages.js` | Home, post, profile, edit profile, follows, liked by, search, settings |
 | `js/notifications.js`, `js/notify-core.js` | Notifications tab and the checker |
 | `js/compose.js` | Composer |
 | `js/media.js` | Media viewer |

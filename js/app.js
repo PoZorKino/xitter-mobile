@@ -11,7 +11,7 @@ import { Stack, banner, pushBack, dropBack, sheet, toast } from "./nav.js";
 import { MoneyPage, moneyKnown } from "./money.js";
 import { NotificationCenter, NotificationsPage } from "./notifications.js";
 import { watchPosts } from "./post.js";
-import { ExplorePage, FollowsPage, HomePage, LikersPage, PostPage, ProfilePage, SearchPage, SearchResultsPage, SettingsPage } from "./pages.js";
+import { EditProfilePage, ExplorePage, FollowsPage, HomePage, LikersPage, PostPage, ProfilePage, SearchPage, SearchResultsPage, SettingsPage } from "./pages.js";
 import * as store from "./store.js";
 import { $, $$, avatar, el, esc, haptic, icon, pressable } from "./util.js";
 

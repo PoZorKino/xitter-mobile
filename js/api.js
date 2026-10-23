@@ -121,6 +121,10 @@ export class Api {
 			.then((r) => this.rememberPage(r))
 			.then((r) => (replies === "only" ? { ...r, data: (r.data || []).filter((p) => p.reply_to) } : r));
 	}
+	// PATCH /me (Xitter from today): name, bio, location, website, avatar_media_id, banner_media_id, remove_banner
+	updateProfile(fields) {
+		return this.request("PATCH", "/me", { body: fields }).then((r) => r.data);
+	}
 	likers(id, limit = 100) {
 		return this.get(`/posts/${id}/likes`, { limit }).then((r) => r.data);
 	}
