@@ -450,7 +450,7 @@ export class ProfilePage extends Page {
 			load:
 				tab === "media"
 					? (cursor) => ctx.api.searchPosts(`from:${n} filter:media`, { cursor })
-					: (cursor) => ctx.api.userPosts(n, { cursor, replies: tab === "replies" }),
+					: (cursor) => ctx.api.userPosts(n, { cursor, replies: tab === "replies" ? "only" : false }),
 			empty: tab === "media" ? "No photos or videos yet." : "No posts yet.",
 			onRefresh: () => this.loadUser(),
 		});
