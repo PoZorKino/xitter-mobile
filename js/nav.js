@@ -323,7 +323,9 @@ export function banner({ title, body, avatar, onTap, timeout = 4500 }) {
 export function toast(text, { error = false } = {}) {
 	const t = el(`<div class="toast ${error ? "error" : ""}"></div>`);
 	t.textContent = text;
-	document.getElementById("toast-root").append(t);
+	const root = document.getElementById("toast-root");
+	// one at a time: a new toast replaces the one still fading, instead of piling up
+	root.replaceChildren(t);
 	t.animate([{ transform: "translate3d(-50%,20px,0)", opacity: 0 }, { transform: "translate3d(-50%,0,0)", opacity: 1 }], { duration: 300, easing: EASE });
 	setTimeout(() => {
 		t.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: "forwards" }).onfinish = () => t.remove();
