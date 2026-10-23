@@ -202,6 +202,8 @@ body.card-open #app {
 .tab-av { width: 28px; height: 28px; border-radius: 50%; display: block; transition: transform 0.15s, box-shadow 0.2s; }
 .tab-av .av { width: 28px; height: 28px; }
 .tab.on .tab-av { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text); }
+/* the ring follows an organisation's square picture instead of drawing a circle around it */
+.tab-av:has(.av.sq) { border-radius: 22%; }
 .tab .badge-dot { top: 8px; right: calc(50% - 18px); }
 .tab-badge {
 	position: absolute;
