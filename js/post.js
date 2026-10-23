@@ -20,8 +20,9 @@ function mediaGrid(media, sensitive) {
 			const alt = esc(m.alt_text || "");
 			if (m.type === "video")
 				return `<div class="m m-video" data-act="media" data-i="${i}"><video src="${esc(m.url)}" poster="${esc(m.poster_url || "")}" preload="none" playsinline muted loop></video><span class="play">${playIcon}</span></div>`;
+			// Xitter serves GIFs as the .gif file itself, not an MP4: an <img> animates, a <video> stays black
 			if (m.type === "gif")
-				return `<div class="m" data-act="media" data-i="${i}"><video src="${esc(m.url)}" autoplay playsinline muted loop></video><span class="gif-tag">GIF</span></div>`;
+				return `<div class="m" data-act="media" data-i="${i}"><img src="${esc(m.url)}" alt="${alt}" loading="lazy" decoding="async"><span class="gif-tag">GIF</span></div>`;
 			return `<div class="m" data-act="media" data-i="${i}"><img src="${esc(m.url)}" alt="${alt}" loading="lazy" decoding="async">${m.alt_text ? `<span class="alt-tag">ALT</span>` : ""}</div>`;
 		})
 		.join("")}${sensitive ? `<button class="sensitive-cover" data-act="reveal"><b>Content warning</b><span>The author flagged this as sensitive.</span><em>Show</em></button>` : ""}</div>`;
