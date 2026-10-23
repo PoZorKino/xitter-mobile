@@ -11,7 +11,7 @@ import { Stack, banner, pushBack, dropBack, sheet, toast } from "./nav.js";
 import { MoneyPage, moneyKnown } from "./money.js";
 import { NotificationCenter, NotificationsPage } from "./notifications.js";
 import { watchPosts } from "./post.js";
-import { ExplorePage, FollowsPage, HomePage, PostPage, ProfilePage, SearchPage, SearchResultsPage, SettingsPage } from "./pages.js";
+import { ExplorePage, FollowsPage, HomePage, LikersPage, PostPage, ProfilePage, SearchPage, SearchResultsPage, SettingsPage } from "./pages.js";
 import * as store from "./store.js";
 import { $, $$, avatar, el, esc, haptic, icon, pressable } from "./util.js";
 
@@ -69,6 +69,7 @@ class AccountRoot {
 		else if (type === "explore") page = new ExplorePage(ctx);
 		else if (type === "money") page = new MoneyPage(ctx);
 		else if (type === "follows") page = new FollowsPage(ctx, params);
+		else if (type === "likers") page = new LikersPage(ctx, params);
 		else if (type === "settings") page = new SettingsPage(ctx);
 		if (!page) return;
 		this.app.el.classList.remove("bar-hidden");

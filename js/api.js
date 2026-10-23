@@ -121,6 +121,9 @@ export class Api {
 			.then((r) => this.rememberPage(r))
 			.then((r) => (replies === "only" ? { ...r, data: (r.data || []).filter((p) => p.reply_to) } : r));
 	}
+	likers(id, limit = 100) {
+		return this.get(`/posts/${id}/likes`, { limit }).then((r) => r.data);
+	}
 	follows(name, which, limit = 100) {
 		return this.get(`/users/${encodeURIComponent(name)}/${which}`, { limit }).then((r) => r.data);
 	}

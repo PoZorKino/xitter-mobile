@@ -85,7 +85,7 @@ export function focusHtml(p) {
 		${mediaGrid(p.media, p.sensitive)}
 		${p.quote_of ? `<div class="quote-slot" data-quote="${esc(p.quote_of)}"><div class="quote skeleton"></div></div>` : ""}
 		<div class="focus-meta"><time>${fullDate(p.created_at)}</time>${p.edited_at ? ` · <span>Edited</span>` : ""}${c.views ? ` · <b>${count(c.views)}</b> Views` : ""}</div>
-		<div class="focus-stats">${stat(c.reposts, "Repost")}${stat(c.quotes, "Quote")}${stat(c.likes, "Like")}${stat(c.bookmarks, "Bookmark")}</div>
+		<div class="focus-stats">${stat(c.reposts, "Repost")}${stat(c.quotes, "Quote")}${stat(c.likes, "Like", "likers")}${stat(c.bookmarks, "Bookmark")}</div>
 		${actionsRow(p, true)}
 	</article>`;
 }
@@ -280,6 +280,9 @@ export function bindPostActions(root, ctx) {
 				e.stopPropagation();
 				actEl.previousElementSibling?.classList.remove("folded");
 				return actEl.remove();
+			case "likers":
+				e.stopPropagation();
+				return ctx.open("likers", { id });
 			case "stat":
 				return;
 		}

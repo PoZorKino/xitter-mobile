@@ -563,6 +563,26 @@ export class FollowsPage extends Page {
 	}
 }
 
+// who liked a post; opened from the Likes stat under a post
+export class LikersPage extends Page {
+	constructor(ctx, { id }) {
+		super(ctx);
+		this.el = el(`<section class="page">${bar({ title: "Liked by" })}
+			<div class="scroll"><div class="list"><div class="loading">${spinnerSvg}</div></div></div></section>`);
+		wireBack(this);
+		bindUserCells(this.el, ctx);
+		const list = $(".list", this.el);
+		ctx.api
+			.likers(id, 200)
+			.then((users) => {
+				list.innerHTML = users.length ? users.map((u) => userCell(u, { me: ctx.account.user.screen_name })).join("") : `<div class="empty">No likes yet.</div>`;
+			})
+			.catch((e) => {
+				list.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+			});
+	}
+}
+
 // ---- Search (tab root) and results
 
 const RECENT = (key) => `xit.recent.${key}`;
