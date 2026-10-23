@@ -492,6 +492,7 @@ export class ProfilePage extends Page {
 			${u.counts ? `<div class="profile-counts"><button data-list="following"><b>${count(u.counts.following)}</b> Following</button><button data-list="followers"><b>${count(u.counts.followers)}</b> Followers</button>${u.affiliates_count ? `<span><b>${count(u.affiliates_count)}</b> Affiliates</span>` : ""}</div>` : ""}`;
 		const head = $(".profile-head", this.el);
 		head.querySelectorAll("[data-list]").forEach((b) => (b.onclick = () => this.ctx.open("follows", { name: u.screen_name, which: b.dataset.list })));
+		head.querySelectorAll(".aff-chip").forEach((b) => (b.onclick = () => this.ctx.open("profile", { name: b.dataset.org })));
 		head.querySelector("[data-edit]")?.addEventListener("click", () => window.open(`${this.ctx.api.origin}/settings/profile`, "_blank", "noopener"));
 		head.querySelector("[data-follow-main]")?.addEventListener("click", (e) => this.toggleFollow(e.currentTarget));
 		head.querySelector(".av.big")?.addEventListener("click", () => this.ctx.viewImage(u.avatar_url));
