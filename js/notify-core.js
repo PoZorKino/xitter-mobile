@@ -84,6 +84,27 @@
 					add({ id: `m-${p.id}`, kind: p.reply_to ? "reply" : "mention", at: Date.parse(p.created_at) || now, post: p });
 				}
 
+			// X Money, where the instance has it and the account accepted its disclaimer:
+			// money received, and requests asking it to pay
+			let moneySeen = prev.moneySeen;
+			try {
+				const wallet = await get(account, "/money");
+				if (wallet.disclaimer_accepted) {
+					const [paid, asked] = await Promise.all([get(account, "/money/activity", { limit: 20 }), get(account, "/money/requests")]);
+					const known = new Set(moneySeen || []);
+					const baseline = moneySeen === undefined;
+					for (const t of paid) {
+						if (t.direction !== "received" || known.has(`p${t.id}`) || baseline) continue;
+						add({ id: `$-${t.id}`, kind: "money", at: Date.parse(t.created_at) || now, payment: t });
+					}
+					for (const q of asked) {
+						if (!q.can_pay || known.has(`r${q.id}`) || baseline) continue;
+						add({ id: `$r-${q.id}`, kind: "money-request", at: Date.parse(q.created_at) || now, request: q });
+					}
+					moneySeen = [...new Set([...paid.map((t) => `p${t.id}`), ...asked.map((q) => `r${q.id}`), ...(moneySeen || [])])].slice(0, 500);
+				}
+			} catch {}
+
 			let followerIds = prev.followers;
 			if (followers.status === "fulfilled") {
 				const known = new Set(prev.followers || []);
@@ -122,6 +143,7 @@
 				followers: followerIds ?? [],
 				counts: counts ?? {},
 				lastSeen: first ? now : prev.lastSeen,
+				moneySeen,
 				notified: prev.notified,
 				checkedAt: now,
 			};
@@ -136,6 +158,7 @@
 
 	const slimUser = (u) => ({ id: u.id, screen_name: u.screen_name, name: u.name, avatar_url: u.avatar_url, verified_type: u.verified_type });
 
+	const cents = (n) => `$${Math.floor(n / 100).toLocaleString("en-US")}${n % 100 ? "." + String(n % 100).padStart(2, "0") : ""}`;
 	function describe(item) {
 		const who = (u) => u.name || "@" + u.screen_name;
 		const snippet = (p) => (p.text || (p.media && p.media.length ? "your media" : "")).slice(0, 120);
@@ -145,6 +168,8 @@
 			case "follow": return { title: item.total > 1 ? `${who(item.users[0])} and ${item.total - 1} other${item.total > 2 ? "s" : ""} followed you` : `${who(item.users[0])} followed you`, body: "" };
 			case "like": return { title: `${item.n} new like${item.n > 1 ? "s" : ""} on your post`, body: snippet(item.post) };
 			case "repost": return { title: `${item.n} new repost${item.n > 1 ? "s" : ""} of your post`, body: snippet(item.post) };
+			case "money": return { title: `${who(item.payment.sender)} sent you ${cents(item.payment.amount_cents)}`, body: item.payment.note || "" };
+			case "money-request": return { title: `${who(item.request.requester)} asked you for ${cents(item.request.amount_cents)}`, body: item.request.note || "" };
 		}
 		return { title: "Xitter", body: "" };
 	}
@@ -154,14 +179,15 @@
 		if (!reg || typeof Notification === "undefined" || Notification.permission !== "granted") return;
 		for (const item of items.slice(0, 4)) {
 			const d = describe(item);
-			const icon = item.post ? item.post.author.avatar_url : item.users && item.users[0].avatar_url;
+			const face = item.post ? item.post.author : item.payment ? item.payment.sender : item.request ? item.request.requester : item.users && item.users[0];
+			const icon = face && face.avatar_url;
 			await reg.showNotification(multi ? `${d.title} · @${account.user.screen_name}` : d.title, {
 				body: d.body,
 				icon: icon || "icons/icon-192.png",
 				badge: "icons/badge-96.png",
 				tag: `${account.key}:${item.id}`,
 				timestamp: item.at,
-				data: { key: account.key, item: item.id, post: item.post ? item.post.id : null },
+				data: { key: account.key, item: item.id, post: item.post ? item.post.id : null, money: item.kind.startsWith("money") },
 			});
 		}
 		if (items.length > 4) {

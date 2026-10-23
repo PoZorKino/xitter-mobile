@@ -8,6 +8,7 @@ import { addAccountFlow, finishOAuth, reauthorize, welcomeScreen } from "./auth.
 import { compose } from "./compose.js";
 import { viewMedia } from "./media.js";
 import { Stack, banner, pushBack, dropBack, sheet, toast } from "./nav.js";
+import { MoneyPage, moneyKnown } from "./money.js";
 import { NotificationCenter, NotificationsPage } from "./notifications.js";
 import { watchPosts } from "./post.js";
 import { ExplorePage, FollowsPage, HomePage, PostPage, ProfilePage, SearchPage, SearchResultsPage, SettingsPage } from "./pages.js";
@@ -66,6 +67,7 @@ class AccountRoot {
 		else if (type === "profile") page = new ProfilePage(ctx, params);
 		else if (type === "search") page = new SearchResultsPage(ctx, params);
 		else if (type === "explore") page = new ExplorePage(ctx);
+		else if (type === "money") page = new MoneyPage(ctx);
 		else if (type === "follows") page = new FollowsPage(ctx, params);
 		else if (type === "settings") page = new SettingsPage(ctx);
 		if (!page) return;
@@ -152,7 +154,7 @@ class App {
 		this.handleHash();
 		addEventListener("hashchange", () => this.handleHash());
 		navigator.serviceWorker?.addEventListener("message", (e) => {
-			if (e.data?.type === "open-notification") this.openNotification(e.data.key, e.data.post);
+			if (e.data?.type === "open-notification") this.openNotification(e.data.key, e.data.post, { money: e.data.money });
 		});
 		// refresh profile details for every account now and then
 		setTimeout(() => this.refreshProfiles(), 3000);
@@ -275,13 +277,14 @@ class App {
 		return r?.tab === "notifications" && r.stack.pages.length === 1 && !document.hidden;
 	}
 
-	openNotification(key, postId) {
+	openNotification(key, postId, { money = false } = {}) {
 		if (key && key !== this.active?.key) this.switchTo(key);
 		const r = this.current;
 		if (r.tab !== "notifications") r.selectTab("notifications");
 		else if (r.stack.pages.length > 1) r.stack.popToRoot();
 		this.updateChrome();
 		if (postId) setTimeout(() => r.open("post", { id: postId }), 60);
+		else if (money) setTimeout(() => r.open("money"), 60);
 	}
 
 	handleHash() {
@@ -293,7 +296,7 @@ class App {
 		else if (h.startsWith("#open=")) {
 			try {
 				const m = JSON.parse(decodeURIComponent(h.slice(6)));
-				this.openNotification(m.key, m.post);
+				this.openNotification(m.key, m.post, { money: m.money });
 			} catch {}
 		}
 	}
@@ -366,6 +369,7 @@ class App {
 			<nav class="drawer-menu">
 				<button class="press" data-go="profile">${icon("user")}Profile</button>
 				<button class="press" data-go="explore">${icon("globe")}Explore ${esc(a.instance)}</button>
+				${moneyKnown(a)?.on === false ? "" : `<button class="press" data-go="money">${icon("money")}Money</button>`}
 				<button class="press" data-switcher>${icon("swap")}Switch account</button>
 				<button class="press" data-go="settings">${icon("gear")}Settings</button>
 			</nav>

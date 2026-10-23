@@ -2,6 +2,7 @@
 // lists them (pull to refresh, paging, new-posts pill).
 
 import { onPostDelete, onPostUpdate } from "./api.js";
+import { hydrateMoney, openSend } from "./money.js";
 import { actionSheet, sheet, toast } from "./nav.js";
 import { $$, ago, avatar, count, el, esc, fullDate, haptic, icon, isRemote, rafThrottle, profileLabel, richText, verifiedBadge, verifiedKind } from "./util.js";
 
@@ -114,6 +115,7 @@ function pump() {
 	}
 }
 export function hydrate(root, api) {
+	hydrateMoney(root, api);
 	for (const slot of $$(".quote-slot[data-quote]:not([data-done])", root)) {
 		slot.dataset.done = "1";
 		enqueue(() =>
@@ -267,6 +269,12 @@ export function bindPostActions(root, ctx) {
 				return actEl.remove();
 			case "open-quote":
 				return ctx.open("post", { id: actEl.dataset.qid });
+			case "money-pay":
+				e.stopPropagation();
+				return openSend(ctx, { to: actEl.dataset.to, amountCents: Number(actEl.dataset.amount) || null, requestId: actEl.dataset.rid, note: actEl.dataset.note || "" });
+			case "money-card":
+				e.stopPropagation();
+				return ctx.open("money");
 			case "show-more":
 				e.stopPropagation();
 				actEl.previousElementSibling?.classList.remove("folded");

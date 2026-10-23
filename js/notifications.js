@@ -3,6 +3,7 @@
 
 import { Page, banner } from "./nav.js";
 import { bindPostActions, hydrate, observeVideos, postHtml, spinnerSvg } from "./post.js";
+import { formatCents } from "./money.js";
 import { prefs } from "./store.js";
 import { $, $$, ago, avatar, el, esc, icon, rafThrottle, richText } from "./util.js";
 
@@ -86,7 +87,7 @@ export class NotificationCenter {
 			title: multi ? `${d.title} · @${account.user.screen_name}` : d.title,
 			body: d.body || (items.length > 1 ? `and ${items.length - 1} more` : ""),
 			avatar: first.post?.author.avatar_url || first.users?.[0]?.avatar_url || account.user.avatar_url,
-			onTap: () => this.app.openNotification(account.key, first.post?.id),
+			onTap: () => this.app.openNotification(account.key, first.post?.id, { money: first.kind.startsWith("money") }),
 		});
 	}
 	async markSeen(key) {
@@ -117,6 +118,13 @@ function itemHtml(item) {
 		return postHtml(item.post, { reason: item.kind === "mention" ? `${icon("user")}<span>Mentioned you</span>` : "" });
 	}
 	const head = (ic, cls) => `<div class="n-icon ${cls}">${icon(ic)}</div>`;
+	if (item.kind === "money" || item.kind === "money-request") {
+		const p = item.payment, q = item.request, u = p ? p.sender : q.requester;
+		const name = `<b>${esc(u.name || u.screen_name)}</b>`;
+		const text = p ? `${name} sent you <b>${formatCents(p.amount_cents, { short: true })}</b>` : `${name} asked you for <b>${formatCents(q.amount_cents, { short: true })}</b>`;
+		const note = (p || q).note;
+		return `<div class="n-item press" data-open-money>${head("money", "money")}<div class="n-body"><div class="n-avs">${avatar(u, "av sm")}</div><div class="n-text">${text} <time>${ago(new Date(item.at).toISOString())}</time></div>${note ? `<div class="n-snippet">${esc(note)}</div>` : ""}</div></div>`;
+	}
 	if (item.kind === "follow") {
 		const users = item.users;
 		const who = users[0].name || users[0].screen_name;
@@ -142,6 +150,7 @@ export class NotificationsPage extends Page {
 		this.el.addEventListener("click", (e) => {
 			const u = e.target.closest("[data-open-user]");
 			if (u) return ctx.open("profile", { name: u.dataset.openUser });
+			if (e.target.closest("[data-open-money]")) return ctx.open("money");
 			const p = e.target.closest("[data-open-post]");
 			if (p) return ctx.open("post", { id: p.dataset.openPost });
 			const b = e.target.closest(".seg button");

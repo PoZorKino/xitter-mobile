@@ -3,6 +3,7 @@
 // warning for media, and a choice of which account to post as.
 
 import { apiFor } from "./api.js";
+import { formatCents, moneyKnown, moneyStatus } from "./money.js";
 import { actionSheet, sheet, toast } from "./nav.js";
 import { accounts } from "./store.js";
 import { $, $$, avatar, debounce, el, esc, haptic, icon, richText, verifiedBadge } from "./util.js";
@@ -77,6 +78,7 @@ export function compose(ctx, { replyTo, quote, text = "" } = {}) {
 			<label class="tool" aria-label="Add photos or video">${icon("image")}<input type="file" accept="image/*,video/*" multiple hidden></label>
 			<button class="tool" data-mention aria-label="Mention someone"><span class="at">@</span></button>
 			<button class="tool cw" data-cw aria-label="Content warning" hidden>${icon("cw")}</button>
+			<button class="tool" data-money aria-label="Money" hidden>${icon("money")}</button>
 			<span class="tools-end"><span class="count"></span><svg class="ring" viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" class="ring-bg"/><circle cx="15" cy="15" r="12" class="ring-fg" stroke-dasharray="75.4" stroke-dashoffset="75.4"/></svg>${replyTo || quote ? "" : `<i class="tool-sep"></i><button class="tool add-part" aria-label="Add to thread">${icon("plus")}</button>`}</span>
 		</div>
 	</div>`);
@@ -282,6 +284,41 @@ export function compose(ctx, { replyTo, quote, text = "" } = {}) {
 		haptic(6);
 		parts.forEach((_, i) => renderMedia(i));
 		update();
+	});
+
+	// ---- X Money: a Pay button, or one of your payments, in the post
+	const moneyBtn = $("[data-money]", root);
+	const showMoney = (w) => (moneyBtn.hidden = !(w?.on ?? true) || !(w?.accepted ?? w?.disclaimer_accepted));
+	const known = moneyKnown(account);
+	if (known) showMoney(known);
+	else moneyStatus({ api, account }).then((w) => showMoney({ on: true, accepted: w.disclaimer_accepted }), () => {});
+	const addToPost = (url) => {
+		const i = active, ta = textareas()[i];
+		parts[i].text = (parts[i].text.trimEnd() + (parts[i].text.trim() ? "\n\n" : "") + url).trimStart();
+		if (ta) {
+			ta.value = parts[i].text;
+			grow(ta);
+			ta.focus();
+		}
+		update();
+		autosave();
+	};
+	moneyBtn.addEventListener("click", async () => {
+		const pick = await actionSheet([
+			{ label: "Add a Pay button", icon: "money", value: "pay" },
+			{ label: "Share one of your payments", icon: "share", value: "payment" },
+		]);
+		try {
+			if (pick === "pay") addToPost((await api.requestMoney({})).url);
+			if (pick === "payment") {
+				const recent = (await api.moneyActivity()).data.slice(0, 8);
+				if (!recent.length) return toast("You haven't sent or received any money yet");
+				const t = await actionSheet(recent.map((p) => ({ label: `${p.direction === "sent" ? "−" : "+"}${formatCents(p.amount_cents)} ${p.direction === "sent" ? "to" : "from"} ${esc((p.direction === "sent" ? p.recipient : p.sender).name)}`, value: p.url })), { title: "Share a payment" });
+				if (t) addToPost(t);
+			}
+		} catch (e) {
+			toast(e.message, { error: true });
+		}
 	});
 
 	// ---- @mentions: suggestions as you type

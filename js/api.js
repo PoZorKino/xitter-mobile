@@ -158,6 +158,37 @@ export class Api {
 		return r.data;
 	}
 
+	// ---- X Money: the instance's own play money (404 when it's off or unsupported)
+	money() {
+		return this.request("GET", "/money").then((r) => r.data);
+	}
+	acceptMoneyDisclaimer() {
+		return this.request("POST", "/money/disclaimer");
+	}
+	moneyActivity(cursor) {
+		return this.request("GET", "/money/activity", { query: { cursor, limit: 30 } });
+	}
+	moneyRequests() {
+		return this.request("GET", "/money/requests").then((r) => r.data);
+	}
+	// to, amount_cents, note, idempotency_key, request_id
+	sendMoney(body) {
+		return this.request("POST", "/money/send", { body }).then((r) => r.data);
+	}
+	// from (omit for a "Pay @you" card), amount_cents, note
+	requestMoney(body) {
+		return this.request("POST", "/money/requests", { body }).then((r) => r.data);
+	}
+	closeMoneyRequest(id, action) {
+		return this.request("POST", `/money/requests/${id}/${action}`).then((r) => r.data);
+	}
+	payment(id) {
+		return this.get(`/money/payments/${id}`).then((r) => r.data);
+	}
+	moneyRequest(id, { fresh } = {}) {
+		return (fresh ? this.request("GET", `/money/requests/${id}`) : this.get(`/money/requests/${id}`)).then((r) => r.data);
+	}
+
 	// Upload a file and wait until it can be attached. Small files go up in one
 	// request; larger ones in 4 MiB segments, with progress.
 	async upload(file, onProgress = () => {}) {

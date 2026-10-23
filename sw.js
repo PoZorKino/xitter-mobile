@@ -1,7 +1,7 @@
 // Service worker: the app shell offline, a bounded cache for avatars and
 // media, and notification checks in the background where the browser allows
 // (Periodic Background Sync, on installed Chromium apps).
-const VERSION = "v1.8.1";
+const VERSION = "v1.9.0";
 const SHELL = `shell-${VERSION}`;
 const MEDIA = "media-v1";
 const MEDIA_MAX = 400;
@@ -23,6 +23,7 @@ const FILES = [
 	"js/notifications.js",
 	"js/notify-core.js",
 	"js/media.js",
+	"js/money.js",
 	"icons/icon-192.png",
 	"icons/badge-96.png",
 ];
@@ -132,7 +133,7 @@ self.addEventListener("notificationclick", (e) => {
 	e.waitUntil(
 		(async () => {
 			const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-			const msg = { type: "open-notification", key: data.key, post: data.post };
+			const msg = { type: "open-notification", key: data.key, post: data.post, money: !!data.money };
 			const client = all[0];
 			if (client) {
 				await client.focus();
