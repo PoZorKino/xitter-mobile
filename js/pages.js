@@ -36,7 +36,7 @@ export function userCell(u, { me } = {}) {
 	return `<div class="user-cell press" data-user="${esc(u.screen_name)}">
 		${avatar(u)}
 		<div class="user-cell-body">
-			<div class="user-cell-head"><div class="user-cell-names"><div class="name-row"><span class="name">${esc(u.name || u.screen_name)}</span>${verifiedBadge(u)}${u.protected ? icon("lock", "lock") : ""}${isRemote(u) ? icon("globe", "globe") : ""}</div><span class="handle">@${esc(u.screen_name)}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</span>${profileLabel(u)}</div>
+			<div class="user-cell-head"><div class="user-cell-names"><div class="name-row"><span class="name">${esc(u.name || u.screen_name)}</span>${verifiedBadge(u)}${u.protected ? icon("lock", "lock") : ""}${isRemote(u) ? icon("globe", "globe") : ""}</div><span class="handle">@${esc(u.screen_name)}${u.pronouns ? `<span class="pronouns">${esc(u.pronouns)}</span>` : ""}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</span>${profileLabel(u)}</div>
 			${mine || !u.viewer ? "" : `<button class="pill-btn ${following ? "outline" : "solid"}" data-follow>${following ? "Following" : "Follow"}</button>`}</div>
 			${u.bio ? `<div class="user-cell-bio">${richText(u.bio)}</div>` : ""}
 		</div>
@@ -446,7 +446,7 @@ export class ProfilePage extends Page {
 				${me ? `<button class="pill-btn outline" data-edit>Edit profile</button>` : u.viewer ? `<button class="pill-btn ${following ? "outline" : "solid"}" data-follow-main>${following ? "Following" : "Follow"}</button>` : ""}
 			</div></div>
 			<div class="profile-names"><h1>${esc(u.name || u.screen_name)}${verifiedBadge(u, { max: 8 })}${u.protected ? icon("lock", "lock") : ""}</h1>
-				<div class="handle">@${esc(local)}${remote ? `<span class="instance-chip">${icon("globe")}${esc(home)}</span>` : ""}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</div>${profileLabel(u)}</div>
+				<div class="handle">@${esc(local)}${remote ? `<span class="instance-chip">${icon("globe")}${esc(home)}</span>` : ""}${u.pronouns ? `<span class="pronouns">${esc(u.pronouns)}</span>` : ""}${u.viewer?.followed_by ? ` <em class="follows-you">Follows you</em>` : ""}</div>${profileLabel(u)}</div>
 			${u.affiliations?.length ? `<div class="profile-affiliations">${u.affiliations.map((o) => `<button class="aff-chip press" data-org="${esc(o.screen_name)}"><img class="aff" src="${esc(o.badge_url || "")}" alt="">${esc(o.name)}</button>`).join("")}</div>` : ""}
 			${u.bio ? `<div class="profile-bio">${richText(u.bio)}</div>` : ""}
 			<div class="profile-meta">
@@ -562,6 +562,7 @@ export class EditProfilePage extends Page {
 				<div class="edit-fields">
 					<label class="edit-field"><span>Name</span><input class="field" name="name" maxlength="50" autocomplete="off"></label>
 					<label class="edit-field"><span>Bio</span><textarea class="field area" name="bio" maxlength="160" rows="3"></textarea></label>
+					<label class="edit-field"><span>Pronouns</span><input class="field" name="pronouns" maxlength="30" autocomplete="off" placeholder="she/her, they/them"></label>
 					<label class="edit-field"><span>Location</span><input class="field" name="location" maxlength="30" autocomplete="off"></label>
 					<label class="edit-field"><span>Website</span><input class="field" name="website" maxlength="100" inputmode="url" autocomplete="off" placeholder="https://"></label>
 				</div>
@@ -571,6 +572,7 @@ export class EditProfilePage extends Page {
 		const f = (name) => this.el.querySelector(`[name="${name}"]`);
 		f("name").value = u.name || "";
 		f("bio").value = u.bio || "";
+		f("pronouns").value = u.pronouns || "";
 		f("location").value = u.location || "";
 		f("website").value = u.website || "";
 		const pictures = {};
@@ -594,7 +596,7 @@ export class EditProfilePage extends Page {
 		});
 		const save = this.el.querySelector("[data-save]");
 		save.addEventListener("click", async () => {
-			const fields = { name: f("name").value.trim(), bio: f("bio").value, location: f("location").value.trim(), website: f("website").value.trim() };
+			const fields = { name: f("name").value.trim(), bio: f("bio").value, pronouns: f("pronouns").value.trim(), location: f("location").value.trim(), website: f("website").value.trim() };
 			if (!fields.name) return toast("Name can't be blank.", { error: true });
 			if (pictures.avatar) fields.avatar_media_id = pictures.avatar;
 			if (pictures.banner) fields.banner_media_id = pictures.banner;

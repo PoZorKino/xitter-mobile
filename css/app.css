@@ -282,6 +282,8 @@ a.pcf { text-decoration: none; }
 .ic.globe { width: 14px; height: 14px; color: var(--dim); }
 .instance-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px 1px 5px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; margin-left: 6px; vertical-align: 1px; }
 .instance-chip .ic { width: 12px; height: 12px; }
+.pronouns { color: var(--dim); }
+.pronouns::before { content: " · "; }
 .follows-you { font-style: normal; font-size: 12px; background: var(--card); color: var(--dim); border-radius: 4px; padding: 1px 4px; margin-left: 4px; }
 .lnk { color: var(--accent); cursor: pointer; }
 
